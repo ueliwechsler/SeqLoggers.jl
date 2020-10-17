@@ -24,10 +24,9 @@ end
 
 SeqLogger(;serverUrl="http://localhost:5341",
            minLevel=Logging.Info,
-           apiKey = "",
+           apiKey="",
            kwargs...) = begin
-    # remove trailing /
-    serverUrl = serverUrl[end] == "/" ? serverUrl[1:end-1] : serverUrl
+    # TODO: remove trailing `/` or add missing `/`
     urlEndpoint = "$(serverUrl)/api/events/raw"
     header = ["Content-Type" => "application/vnd.serilog.clef"]
     if !isempty(apiKey)

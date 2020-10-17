@@ -15,6 +15,7 @@ The log events are posted "asynchronoulsy" to the `Seq` logger using `HTTP.jl` a
 **!!! Note: This is an unoffical package and not production ready.**
 
 **!!! Note: Using `SeqLoggers.jl` might introduce a considerable perfromance penalty.**
+**!!! Note: Need to create documentation https://juliadocs.github.io/Documenter.jl/stable/man/hosting/**
 
 ## Install Seq)
 
