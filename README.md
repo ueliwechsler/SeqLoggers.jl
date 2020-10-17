@@ -24,3 +24,20 @@ the instruction on: https://docs.datalust.co/docs/getting-started
 The `Seq` log can then be accessed on http://localhost:5341.
 
 ## SeqLoggers Type
+
+A `SeqLogger` is used to replace the currently active logger for a certain part of the code where the log events should be stored in the `Seq` logger.
+
+This is done by  and then  wrapping the code in a `with_logger` `do` block.
+
+First, a `SeqLogger` is created with the constructor
+```julia
+seqLogger = SeqLogger(; serverUrl="http://localhost:5341", App="Trialrun", Env="Test")
+```
+where the hosting `Seq` server is defined in `serverUrl` and further keyword arguments define "global" log event properties for the logger.
+
+The logger then can be used as follows:
+```julia
+@time Logging.with_logger(seqLogger) do
+    @info "Log me into `Seq`"
+end
+```
