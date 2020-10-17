@@ -38,6 +38,6 @@ where the hosting `Seq` server is defined in `serverUrl` and further keyword arg
 The logger then can be used as follows:
 ```julia
 @time Logging.with_logger(seqLogger) do
-    @info "Log me into `Seq`"
+    @info "Log me into `Seq` with property user = {user}" user="Me"
 end
 ```

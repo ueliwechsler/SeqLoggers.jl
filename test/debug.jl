@@ -20,9 +20,9 @@ seqLogger = SeqLogger(; minLevel=Logging.Debug,
     sleep(0.1)
     @info "Information Event"
     sleep(0.1)
-    @warn "Warning Event with one logger event property" User="Ueli Wechsler"
+    @warn "Warning Event with one logger event property: User: {User}" User="Ueli Wechsler"
     sleep(0.1)
-    @error "Warning Event with multiple logger event properties" User="Ueli Wechsler" machine="speedy"
+    @error "Warning Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
 end
 
@@ -40,6 +40,8 @@ combinedLogger = TeeLogger(Logging.current_logger(), seqLogger)
     @error "Warning Event with multiple logger event properties" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
 end
+
+# Unnecessary!!!
 
 # using HTTP
 # event = "\"@t\":\"2020-10-17T19:36:30.266\",\"@mt\":\"Hallo Welt\",\"@l\":\"Information\",\"App\":\"DJSON\",\"Env\":\"Test\",\"HistoryId\":\"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\","
