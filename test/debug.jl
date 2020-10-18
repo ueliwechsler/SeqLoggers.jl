@@ -8,36 +8,35 @@ using SeqLoggers
 
 seqLogger = SeqLogger(; App="Trialrun", Env="Test")
 
-seqLogger = SeqLogger(; minLevel=Logging.Debug,
-                        apiKey="Test",
-                        App="Trialrun",
-                        HistoryId=raw"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                        Env="Test")
-
-
 @time Logging.with_logger(seqLogger) do
     @debug "Debug Event Welt"
     sleep(0.1)
-    @info "Information Event"
+    @info "Info Event"
     sleep(0.1)
     @warn "Warning Event with one logger event property: User: {User}" User="Ueli Wechsler"
     sleep(0.1)
-    @error "Warning Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
+    @error "Error Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
 end
 
 # In combination with LoggingExtras.jl
 using SeqLoggers.LoggingExtras
+
+seqLogger = SeqLogger(; minLevel=Logging.Debug,
+                        apiKey="Test",
+                        App="Trialrun",
+                        HistoryId=raw"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                        Env="Test")
 combinedLogger = TeeLogger(Logging.current_logger(), seqLogger)
 
 @time Logging.with_logger(combinedLogger) do
     @debug "Debug Event Welt"
     sleep(0.1)
-    @info "Information Event"
+    @info "Info Event"
     sleep(0.1)
-    @warn "Warning Event with one logger event property" User="Ueli Wechsler"
+    @warn "Warning Event with one logger event property: User: {User}" User="Ueli Wechsler"
     sleep(0.1)
-    @error "Warning Event with multiple logger event properties" User="Ueli Wechsler" machine="speedy"
+    @error "Error Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
 end
 
@@ -53,17 +52,17 @@ batchSeqLogger = BatchSeqLogger(; batchSize=200, App="Trialrun", Env="Test")
 @time Logging.with_logger(batchSeqLogger) do
     for i=1:1000
         @info "Iteration $i of {type}" type=typeof(batchSeqLogger)
-        sleep(0.005)
+        sleep(0.001)
     end
     flush(batchSeqLogger)
 end
-# 6.597696 seconds (246.47 k allocations: 12.748 MiB)
+ # 15.514324 seconds (319.50 k allocations: 17.198 MiB)
 
 seqLogger = SeqLogger(; App="Trialrun", Env="Test")
 @time Logging.with_logger(seqLogger) do
     for i=1:1000
         @info "Iteration $i of {type}" type=typeof(seqLogger)
-        sleep(0.005)
+        sleep(0.001)
     end
 end
-# 6.448328 seconds (505.91 k allocations: 28.545 MiB)
+# 4.242601 seconds (538.67 k allocations: 30.332 MiB, 0.21% gc time)

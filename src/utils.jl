@@ -1,10 +1,12 @@
 function stringify(; kwargs...)
-    kwargsString = Vector{String}()
+    eventProperties = Vector{String}()
     for kwarg in kwargs
-        push!(kwargsString, "\"$(kwarg.first)\":\"$(kwarg.second)\"")
+        property = "\"$(kwarg.first)\":\"$(kwarg.second)\""
+        push!(eventProperties,  replace(property, "\\" => "/"))
     end
-    return join(kwargsString, ",")
+    return join(eventProperties, ",")
 end
+
 
 function to_seq_level(logLevel::Base.CoreLogging.LogLevel)
     if logLevel == Logging.Debug
@@ -16,4 +18,11 @@ function to_seq_level(logLevel::Base.CoreLogging.LogLevel)
     elseif logLevel == Logging.Error
         return "Error"
     end
+end
+
+# NOTE: remove trailing or add additional frontslash
+function joinurl(left, right)
+    leftStripped = rstrip(left, '/')
+    rightStripped = lstrip(right, '/')
+    return join([leftStripped, rightStripped], '/')
 end
