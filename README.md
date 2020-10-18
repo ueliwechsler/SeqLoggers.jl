@@ -28,7 +28,7 @@ The `Seq` log can then be accessed on http://localhost:5341.
 
 A `SeqLogger` is used to replace the currently active logger for a certain part of the code where the log events should be stored in the `Seq` logger.
 
-This is done by  and then  wrapping the code in a `with_logger` `do` block.
+This is done by wrapping the code in a `with_logger` `do` block.
 
 First, a `SeqLogger` is created with the constructor
 ```julia
