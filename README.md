@@ -17,7 +17,7 @@ The log events are posted "asynchronoulsy" to the `Seq` logger using `HTTP.jl` a
 **!!! Note: Using `SeqLoggers.jl` might introduce a considerable perfromance penalty.**
 **!!! Note: Need to create documentation https://juliadocs.github.io/Documenter.jl/stable/man/hosting/**
 
-## Install Seq)
+## Install Seq
 
 Install Seq for free for development purposesor single-user deployment by following
 the instruction on: https://docs.datalust.co/docs/getting-started
