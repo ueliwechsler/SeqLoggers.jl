@@ -6,7 +6,9 @@ using Revise
 # push!(LOAD_PATH, abspath(joinpath(@__DIR__,"..")))
 using SeqLoggers
 
+seqLogger = SeqLogger(SeqLoggers.Parallel(); App="Trialrun", Env="Test")
 seqLogger = SeqLogger(; App="Trialrun", Env="Test")
+seqLogger = SeqLogger(SeqLoggers.Parallel(); serverUrl="sf")
 
 @time Logging.with_logger(seqLogger) do
     @debug "Debug Event Welt"
@@ -57,7 +59,7 @@ batchSeqLogger = BatchSeqLogger(; batchSize=200, App="Trialrun", Env="Test")
     flush(batchSeqLogger)
 end
  # 15.514324 seconds (319.50 k allocations: 17.198 MiB)
-
+seqLogger = SeqLogger(SeqLoggers.Parallel(); App="Trialrun", Env="Test")
 seqLogger = SeqLogger(; App="Trialrun", Env="Test")
 @time Logging.with_logger(seqLogger) do
     for i=1:1000

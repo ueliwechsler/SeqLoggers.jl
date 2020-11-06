@@ -3,6 +3,7 @@ abstract type AbstractSeqLogger <: AbstractLogger end
 abstract type PostType end
 struct Parallel <:PostType end
 struct Serial <:PostType end
+struct Background <:PostType end
 
 struct SeqLogger{PT<:PostType} <: AbstractSeqLogger
     serverUrl::String
@@ -13,8 +14,8 @@ struct SeqLogger{PT<:PostType} <: AbstractSeqLogger
 end
 
 """
-    SeqLogger(postType=Parallel(); serverUrl="http://localhost:5341",
-                                   minLevel=Logging.Info, apiKey="", kwargs...)
+    SeqLogger(postType=Background(); serverUrl="http://localhost:5341",
+                                     minLevel=Logging.Info, apiKey="", kwargs...)
 
 Logger that sends log events to a `Seq` logging server.
 
@@ -27,13 +28,14 @@ App = "DJSON", Env = "Test" # Dev, Prod, Test, UAT, HistoryId = "xxxxxxxx-xxxx-x
 Additional log events can also be added separately for each idividual log event
 `@info "Event" logEventProperty="logEventValue"`
 """
-function SeqLogger(postType=Parallel(); serverUrl="http://localhost:5341",
-                                        minLevel=Logging.Info, apiKey="", kwargs...)
+function SeqLogger(postType=Background(); serverUrl="http://localhost:5341",
+                                          minLevel=Logging.Info, apiKey="", kwargs...)
     if postType == Parallel()
         @warn """A logger of type `SeqLogger{Parallel}` does not provide feedback on the
                  POST request return value. Use `SeqLogger(postType=Serial(); ...` for testing purposes."""
+    elseif postType == Background()
+        WorkerUtilities.init()
     end
-
 
     urlEndpoint = joinurl(serverUrl, "api/events/raw")
     header = ["Content-Type" => "application/vnd.serilog.clef"]
@@ -68,10 +70,32 @@ function parse_event_from_args(logger::AbstractSeqLogger, handleMessageArgs)
     return "{$event}"
 end
 
+using WorkerUtilities
+
+function Base.flush(logger::SeqLogger{Background}, eventJson)
+    WorkerUtilities.@spawn begin
+        try
+            HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
+        catch exception
+            # Write error message in stderr io stream
+            Logging.with_logger(ConsoleLogger(stderr, Logging.min_enabled_level(logger))) do
+                @error string(exception)
+            end
+        end
+    end
+    return nothing
+end
+
 function Base.flush(logger::SeqLogger{Parallel}, eventJson)
-    # TODO: add some feedback mechanism if the Post did not work!
     Threads.@spawn begin
-        HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
+        try
+            HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
+        catch exception
+            # Write error message in stderr io stream
+            Logging.with_logger(ConsoleLogger(stderr, Logging.min_enabled_level(logger))) do
+                @error string(exception)
+            end
+        end
     end
     return nothing
 end
