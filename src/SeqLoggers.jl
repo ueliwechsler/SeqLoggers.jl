@@ -5,10 +5,10 @@ export Logging
 
 using Logging
 # using Logging: Debug, Info, Warn, Error
+using WorkerUtilities
 using LoggingExtras
 using Dates
 using HTTP
-
 
 include("utils.jl")
 include("seq_logger.jl")
