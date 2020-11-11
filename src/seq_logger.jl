@@ -60,7 +60,7 @@ end
 function parse_event_from_args(logger::AbstractSeqLogger, handleMessageArgs)
     lineEventProperties = stringify(; _file=handleMessageArgs.file, _line=handleMessageArgs.line)
     additonalEventProperties = stringify(; handleMessageArgs.kwargs...)
-    cleanMessage = replace_invalid_character(handleMessageArgs.message)
+    cleanMessage = replace_invalid_character("$(handleMessageArgs.message)")
     atTime = "\"@t\":\"$(now())\""
     atMsg = "\"@mt\":\"$(cleanMessage)\""
     atLevel = "\"@l\":\"$(to_seq_level(handleMessageArgs.level))\""
