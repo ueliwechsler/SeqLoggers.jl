@@ -1,8 +1,19 @@
+function replace_invalid_character(string::AbstractString)
+    substitutions = ["\\" => "/",
+                     "\"" => "'"]
+    for sub in substitutions
+        string = replace(string, sub)
+    end
+    return string
+end
+
 function stringify(; kwargs...)
     eventProperties = Vector{String}()
     for kwarg in kwargs
-        property = "\"$(kwarg.first)\":\"$(kwarg.second)\""
-        push!(eventProperties,  replace(property, "\\" => "/"))
+        # kwarg.second can have invalid chracters, kwarg.first not
+        cleanKwargSecond = replace_invalid_character(kwarg.second)
+        property = "\"$(kwarg.first)\":\"$(cleanKwargSecond)\""
+        push!(eventProperties, property)
     end
     return join(eventProperties, ",")
 end

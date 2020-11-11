@@ -3,16 +3,16 @@
 
 struct BatchSeqLogger <: AbstractLogger
     seqLogger::SeqLogger
-    batchEvents::Vector{String}
+    eventBatch::Vector{String}
     batchSize::Int
 end
 
-BatchSeqLogger(serverUrl="http://localhost:5341";
+BatchSeqLogger(serverUrl="http://localhost:5341", postType=Background();
                minLevel=Logging.Info,
                apiKey="",
                batchSize=10,
                kwargs...) = begin
-   seqLogger = SeqLogger(serverUrl;
+   seqLogger = SeqLogger(serverUrl, postType;
                   minLevel=minLevel,
                   apiKey = apiKey,
                   kwargs...)
@@ -35,9 +35,9 @@ function Logging.handle_message(logger::BatchSeqLogger, args...; kwargs...)
     try
         handleMessageArgs = LoggingExtras.handle_message_args(args...; kwargs...)
         eventJson = parse_event_from_args(logger.seqLogger, handleMessageArgs)
-        push!(logger.batchEvents, eventJson)
-        if length(logger.batchEvents) >= logger.batchSize
-            flush(logger)
+        push!(logger.eventBatch, eventJson)
+        if length(logger.eventBatch) >= logger.batchSize
+            flush_events(logger)
         end
     finally
         unlock(l)
@@ -45,13 +45,21 @@ function Logging.handle_message(logger::BatchSeqLogger, args...; kwargs...)
     return nothing
 end
 
-function Base.flush(batchLogger::BatchSeqLogger)
-    if !isempty(batchLogger.batchEvents)
-        eventBatch = join(batchLogger.batchEvents, "\n")
-        empty!(batchLogger.batchEvents)
+function flush_events(batchLogger::BatchSeqLogger)
+    if !isempty(batchLogger.eventBatch)
+        eventBatch = join(batchLogger.eventBatch, "\n")
+        empty!(batchLogger.eventBatch)
         HTTP.request("POST", batchLogger.seqLogger.serverUrl,
                              batchLogger.seqLogger.header,
                              eventBatch)
     end
     return nothing
 end
+
+# QuickFix to FLush BatchSeqLogger as part of LoggingExtras.TeeLogger
+function Logging.with_logger(@nospecialize(f::Function), demux::TeeLogger)
+    Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demux))
+    flush_events.(demux.loggers)
+end
+
+flush_events(::Logging.AbstractLogger) = nothing

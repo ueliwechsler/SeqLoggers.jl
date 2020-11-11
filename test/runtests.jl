@@ -17,6 +17,10 @@ using Test
     url3 = SeqLoggers.joinurl("http://localhost:8080/", "/index.html")
     url4 = SeqLoggers.joinurl("http://localhost:8080", "/index.html")
     @test url1 == url2 == url3 == url4 == "http://localhost:8080/index.html"
+
+    invalidString = "Test\"BadString\\"
+    validString = "Test'BadString/"
+    @test SeqLoggers.replace_invalid_character(invalidString) == validString
 end
 
 @testset "SeqLogger" begin

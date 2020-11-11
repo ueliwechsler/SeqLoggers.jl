@@ -17,8 +17,8 @@ struct SeqLogger{PT<:PostType} <: AbstractSeqLogger
 end
 
 """
-    SeqLogger(postType=Background(); serverUrl="http://localhost:5341",
-                                     minLevel=Logging.Info, apiKey="", kwargs...)
+    SeqLogger(serverUrl="http://localhost:5341", postType=Background();
+                   minLevel=Logging.Info, apiKey="", kwargs...)
 
 Logger that sends log events to a `Seq` logging server.
 
@@ -53,15 +53,16 @@ Logging.catch_exceptions(logger::AbstractSeqLogger) = false
 function Logging.handle_message(logger::AbstractSeqLogger, args...; kwargs...)
     handleMessageArgs = LoggingExtras.handle_message_args(args...; kwargs...)
     eventJson = parse_event_from_args(logger, handleMessageArgs)
-    flush(logger, eventJson)
+    post_event(logger, eventJson)
     return nothing
 end
 
 function parse_event_from_args(logger::AbstractSeqLogger, handleMessageArgs)
     lineEventProperties = stringify(; _file=handleMessageArgs.file, _line=handleMessageArgs.line)
     additonalEventProperties = stringify(; handleMessageArgs.kwargs...)
+    cleanMessage = replace_invalid_character(handleMessageArgs.message)
     atTime = "\"@t\":\"$(now())\""
-    atMsg = "\"@mt\":\"$(handleMessageArgs.message)\""
+    atMsg = "\"@mt\":\"$(cleanMessage)\""
     atLevel = "\"@l\":\"$(to_seq_level(handleMessageArgs.level))\""
     event = join([atTime, atMsg, atLevel,
                  logger.loggerEventProperties,
@@ -70,7 +71,7 @@ function parse_event_from_args(logger::AbstractSeqLogger, handleMessageArgs)
     return "{$event}"
 end
 
-function Base.flush(logger::SeqLogger{Background}, eventJson)
+function post_event(logger::SeqLogger{Background}, eventJson)
     worker = WorkerUtilities.@spawn begin
         HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
     end
@@ -78,7 +79,7 @@ function Base.flush(logger::SeqLogger{Background}, eventJson)
     return nothing
 end
 
-function Base.flush(logger::SeqLogger{Parallel}, eventJson)
+function post_event(logger::SeqLogger{Parallel}, eventJson)
     worker = Threads.@spawn begin
         HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
     end
@@ -86,7 +87,7 @@ function Base.flush(logger::SeqLogger{Parallel}, eventJson)
     return nothing
 end
 
-function Base.flush(logger::SeqLogger{Serial}, eventJson)
+function post_event(logger::SeqLogger{Serial}, eventJson)
     HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
     return nothing
 end
