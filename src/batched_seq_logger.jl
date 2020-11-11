@@ -60,6 +60,7 @@ end
 function Logging.with_logger(@nospecialize(f::Function), demux::TeeLogger)
     Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demux))
     flush_events.(demux.loggers)
+    return nothing
 end
 
 flush_events(::Logging.AbstractLogger) = nothing
