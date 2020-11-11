@@ -33,10 +33,9 @@ end
     @test minimalSeqLogger.header == ["Content-Type" => "application/vnd.serilog.clef"]
 
     minLevel = Logging.Debug
-    seqLogger = SeqLogger(; minLevel=minLevel,
+    seqLogger = SeqLogger("http://myhost:1010"; minLevel=minLevel,
                             apiKey="Test",
                             App="Trialrun",
-                            serverUrl="http://myhost:1010",
                             HistoryId=raw"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                             Env="Test")
 
