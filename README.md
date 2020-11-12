@@ -36,9 +36,13 @@ seqLogger = SeqLogger(; serverUrl="http://localhost:5341", App="Trialrun", Env="
 ```
 where the hosting `Seq` server is defined in `serverUrl` and further keyword arguments define "global" log event properties for the logger.
 
+
 The logger then can be used as follows:
 ```julia
 @time Logging.with_logger(seqLogger) do
     @info "Log me into `Seq` with property user = {user}" user="Me"
 end
 ```
+
+> :warning: **Do not copy-paste the @info string in this example**: Coping the String might introduce extra characters that cannot be handled by the `Seq` logger.
+
