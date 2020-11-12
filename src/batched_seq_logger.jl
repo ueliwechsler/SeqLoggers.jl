@@ -58,9 +58,9 @@ end
 
 # QuickFix to FLush BatchSeqLogger as part of LoggingExtras.TeeLogger
 function Logging.with_logger(@nospecialize(f::Function), demux::TeeLogger)
-    Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demux))
+    result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demux))
     flush_events.(demux.loggers)
-    return nothing
+    return result
 end
 
 flush_events(::Logging.AbstractLogger) = nothing
