@@ -17,5 +17,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ueliwechsler/SeqLoggers.jl",
+    repo="github.com/ueliwechsler/SeqLoggers.jl.git",
 )
