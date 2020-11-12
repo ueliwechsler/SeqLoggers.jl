@@ -12,10 +12,7 @@ It utilizes the standard way of logging in `Julia` with the macros `@error` `@wa
 
 The log events are posted "asynchronoulsy" to the `Seq` logger using `HTTP.jl` and the raw-event API described at https://docs.datalust.co/docs/posting-raw-events.
 
-**!!! Note: This is an unoffical package and not production ready.**
-
-**!!! Note: Using `SeqLoggers.jl` might introduce a considerable perfromance penalty.**
-**!!! Note: Need to create documentation https://juliadocs.github.io/Documenter.jl/stable/man/hosting/**
+> :warning: Note: This is an unoffical package and not yet production ready.
 
 ## Install Seq
 
