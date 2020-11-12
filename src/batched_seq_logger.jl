@@ -20,8 +20,9 @@ BatchSeqLogger(serverUrl="http://localhost:5341", postType=Background();
 end
 
 function Logging.with_logger(@nospecialize(f::Function), batchSeqlogger::BatchSeqLogger)
-    Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(batchSeqlogger))
-    flush(batchSeqlogger)
+    result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(batchSeqlogger))
+    flush_events(batchSeqlogger)
+    return result
 end
 
 Logging.shouldlog(logger::BatchSeqLogger, arg...) = true
