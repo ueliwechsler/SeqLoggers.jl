@@ -1,4 +1,5 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia
+codecov: true
 language: julia
 notifications:
   email: false
@@ -15,10 +16,22 @@ arch:
 cache:
   directories:
     - ~/.julia/artifacts
+    
+notifications:
+  email: false
+  
 jobs:
   fast_finish: true
   allow_failures:
     - julia: nightly
+  include:
+    - stage: "Documentation"
+      julia: 1.4
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+                                               Pkg.instantiate();'
+        - julia --project=docs/ docs/make.jl
 after_success:
   - |
     julia -e '
