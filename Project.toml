@@ -1,7 +1,7 @@
 name = "SeqLoggers"
 uuid = "5370ec29-8137-43b2-8ce7-bd26b38685e0"
 authors = ["Ueli Wechsler <ueli.wechsler@outlook.com> and contributors"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
