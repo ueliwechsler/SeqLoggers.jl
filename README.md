@@ -93,7 +93,7 @@ batchSeqLogger = BatchSeqLogger(serverUrl; # url of server hosting `seq`
 ```
 with the additional keyword argument `batchSize,` defining the number of log events stored before posting, and can be used as
 ```julia
-Logging.with_logger(batchSize) do
+Logging.with_logger(batchSeqLogger) do
     @info "Log me into `Seq` with property user = {user}" user="Me"
 end
 ```
