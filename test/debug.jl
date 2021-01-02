@@ -8,11 +8,11 @@ using SeqLoggers
 
 ## Methods
 using LinearAlgebra
-function parllel_iterations(logger, nIter, duration=1)
+function parallel_iterations(logger, nIter, duration=1)
     Logging.with_logger(logger) do
         for i=1:nIter
             Threads.@threads for idx=1:4
-                @info "Iteration $i,$idx of {type}" type=typeof(logger)
+                @info "Iteration $i,$idx, threadId $(Threads.threadid()) of {type}" type=typeof(logger)
                 t = time()
                 x = randn(10,10)
                 while time() < t + duration
@@ -45,10 +45,10 @@ function idle_iterations(logger, nIter, duration=1)
     end
 end
 
-function parllel_iterations2(logger, nIter, duration=0.1)
+function parallel_iterations2(logger, nIter, duration=0.1)
     Logging.with_logger(logger) do
         Threads.@threads for idx=1:nIter
-            @info "Iteration $idx of {type}" type=typeof(logger)
+            @info "Iteration $idx, threadId $(Threads.threadid()) of {type}" type=typeof(logger)
             t = time()
             x = randn(10,10)
             while time() < t + duration
@@ -58,54 +58,53 @@ function parllel_iterations2(logger, nIter, duration=0.1)
     end
 end
 
-# does not reaturn all log events
-@elapsed parllel_iterations2(batchSeqLogger, 10)
-
 ## Define Loggers
-serverUrl = "http://subdn215:5341/"
+# serverUrl = "http://subdn215:5341/"
 serverUrl = "http://localhost:5341/"
 parallelLogger = SeqLogger(serverUrl, SeqLoggers.Parallel(); App="Trialrun")
-serialLogger = SeqLogger(serverUrl, SeqLoggers.Serial(); App="Trialrun")
+serialLogger = SeqLogger(serverUrl; App="Trialrun")
+bgLogger = SeqLogger(serverUrl, SeqLoggers.Background();App="Trialrun", Env="Test")
+serialLoggerBatchSize1 = SeqLogger(serverUrl; batchSize=1, App="Trialrun")
 
-bgLogger = SeqLogger(serverUrl;App="Trialrun", Env="Test")
 bg3Logger = SeqLogger(serverUrl, SeqLoggers.Background(3); App="Trialrun", Env="Test")
-bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.Parallel(); )
-batchSeqLogger = BatchSeqLogger(serverUrl; batchSize=10, App="Trialrun", Env="Test")
+bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.Background();)
 
 ## Benchmarks
 # We only need, background, serial and batched logger (batched is the best (but parallelisation?))
 @elapsed busy_iterations(parallelLogger, 10)
 @elapsed busy_iterations(serialLogger, 10)
+@elapsed busy_iterations(serialLoggerBatchSize1, 10)
 @elapsed busy_iterations(bgLogger, 10)
 @elapsed busy_iterations(bg3Logger, 10)
-@elapsed busy_iterations(batchSeqLogger, 10)
 
 @elapsed busy_iterations(parallelLogger, 100, 0.1)
 @elapsed busy_iterations(serialLogger, 100, 0.1)
 @elapsed busy_iterations(bgLogger, 100, 0.1)
 @elapsed busy_iterations(bg3Logger, 100, 0.1)
-@elapsed busy_iterations(batchSeqLogger, 100, 0.1)
 
 @elapsed busy_iterations(parallelLogger, 25)
 @elapsed busy_iterations(serialLogger, 25)
 @elapsed busy_iterations(bgLogger, 25)
 @elapsed busy_iterations(bg3Logger, 25)
-@elapsed busy_iterations(batchSeqLogger, 25)
 
 @elapsed idle_iterations(parallelLogger, 10)
 @elapsed idle_iterations(serialLogger, 10)
 @elapsed idle_iterations(bgLogger, 10)
 @elapsed idle_iterations(bg3Logger, 10)
-@elapsed idle_iterations(batchSeqLogger, 10)
 
-@elapsed parllel_iterations(parallelLogger, 10)
-@elapsed parllel_iterations(serialLogger, 10)
-@elapsed parllel_iterations(bgLogger, 10)
-@elapsed parllel_iterations(bg3Logger, 10)
-@elapsed parllel_iterations(batchSeqLogger, 10)
+@elapsed parallel_iterations(parallelLogger, 10)
+@elapsed parallel_iterations(serialLogger, 10)
+@elapsed parallel_iterations(bgLogger, 10)
+@elapsed parallel_iterations(bg3Logger, 10)
 
-@elapsed parllel_iterations(bgBrokenLogger, 10)
+@elapsed parallel_iterations2(serialLogger, 15)
+@elapsed parallel_iterations2(parallelLogger, 15)
+@elapsed parallel_iterations2(bgLogger, 15)
 
+
+@elapsed parallel_iterations(bgBrokenLogger, 10)
+
+@elapsed busy_iterations(serialLogger, 10)
 
 
 ##
@@ -143,7 +142,7 @@ serverUrl = "http://localhost:5341/"
 logger = SeqLogger(serverUrl, ; App="Trialrun")
 Logging.global_logger(logger)
 @info "Test"
-@info "Test2\n, \r, \\ \""
+@info "Test3\n, \r, \\ \""
 
 
 

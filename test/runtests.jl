@@ -18,8 +18,8 @@ using Test
     url4 = SeqLoggers.joinurl("http://localhost:8080", "/index.html")
     @test url1 == url2 == url3 == url4 == "http://localhost:8080/index.html"
 
-    invalidString = "Test\" \nBadString\\\r"
-    validString = "Test' \\nBadString/"
+    invalidString = "Test\" \nBadString\\ \r"
+    validString = "Test' \\nBadString/ \\r"
     @test SeqLoggers.replace_invalid_character(invalidString) == validString
 end
 
@@ -29,21 +29,28 @@ end
     @test minimalSeqLogger isa SeqLogger
     @test minimalSeqLogger.minLevel == Logging.Info
     minimalSeqLogger.serverUrl == "http://localhost:5341/api/events/raw"
-    @test minimalSeqLogger.loggerEventProperties  == ""
+    @test minimalSeqLogger.eventProperties[]  == ""
     @test minimalSeqLogger.header == ["Content-Type" => "application/vnd.serilog.clef"]
+    @test minimalSeqLogger.batchSize == 10
+    @test minimalSeqLogger.eventBatch == String[]
 
     minLevel = Logging.Debug
-    seqLogger = SeqLogger("http://myhost:1010"; minLevel=minLevel,
+    seqLogger = SeqLogger("http://myhost:1010", SeqLoggers.Parallel();
+                            minLevel=minLevel,
                             apiKey="Test",
                             App="Trialrun",
+                            batchSize=3,
                             HistoryId=raw"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                             Env="Test")
 
     @test seqLogger.minLevel == Logging.Debug
     @test seqLogger.serverUrl == "http://myhost:1010/api/events/raw"
-    @test seqLogger.loggerEventProperties  ==  "\"App\":\"Trialrun\",\"HistoryId\":\"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\"Env\":\"Test\""
+    @test seqLogger.eventProperties[]  ==  "\"App\":\"Trialrun\",\"HistoryId\":\"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\"Env\":\"Test\""
     @test seqLogger.header == ["Content-Type" => "application/vnd.serilog.clef"
                          "X-Seq-ApiKey" => "Test"]
+    @test seqLogger.batchSize == 3
+    @test seqLogger.eventBatch == String[]
+
 
     @test Logging.shouldlog(seqLogger) == true
     @test Logging.min_enabled_level(seqLogger) == minLevel
@@ -51,6 +58,12 @@ end
 
 end
 
-
+@testset "Add log event properties dynamically" begin
+    logger = SeqLogger(;)
+    SeqLoggers.event_property!(logger; newProperty="DynamicProperty")
+    @test logger.eventProperties[] == "\"newProperty\":\"DynamicProperty\""
+    SeqLoggers.event_property!(logger; next="true")
+    @test logger.eventProperties[] == "\"newProperty\":\"DynamicProperty\",\"next\":\"true\""
+end
 
 end

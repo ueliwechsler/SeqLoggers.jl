@@ -1,7 +1,9 @@
 module SeqLoggers
 
-export SeqLogger, BatchSeqLogger
 export Logging
+
+export SeqLogger
+# export flush_current_logger, flush_global_logger, event_property!
 
 using Logging
 # using Logging: Debug, Info, Warn, Error
@@ -12,6 +14,5 @@ using HTTP
 
 include("utils.jl")
 include("seq_logger.jl")
-include("batched_seq_logger.jl")
 
 end

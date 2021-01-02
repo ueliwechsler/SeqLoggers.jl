@@ -1,5 +1,3 @@
-abstract type AbstractSeqLogger <: AbstractLogger end
-
 abstract type PostType end
 struct Parallel <:PostType end
 struct Serial <:PostType end
@@ -8,12 +6,14 @@ struct Background <:PostType
 end
 Background() = Background(one(Int))
 
-struct SeqLogger{PT<:PostType} <: AbstractSeqLogger
+struct SeqLogger{PT<:PostType} <: AbstractLogger
     serverUrl::String
     header::Vector{Pair{String,String}}
     minLevel::Logging.LogLevel
-    loggerEventProperties::String
+    eventProperties::Ref{String}
     postType::PT
+    eventBatch::Vector{String}
+    batchSize::Int
 end
 
 """
@@ -31,8 +31,11 @@ App = "DJSON", Env = "Test" # Dev, Prod, Test, UAT, HistoryId = "xxxxxxxx-xxxx-x
 Additional log events can also be added separately for each idividual log event
 `@info "Event" logEventProperty="logEventValue"`
 """
-function SeqLogger(serverUrl="http://localhost:5341", postType=Background();
-                   minLevel=Logging.Info, apiKey="", kwargs...)
+function SeqLogger(serverUrl="http://localhost:5341", postType=Serial();
+                   minLevel=Logging.Info,
+                   apiKey="",
+                   batchSize=10,
+                   kwargs...)
     if postType isa Background
         WorkerUtilities.init(postType.nWorkers)
     end
@@ -42,22 +45,60 @@ function SeqLogger(serverUrl="http://localhost:5341", postType=Background();
     if !isempty(apiKey)
         push!(header, "X-Seq-ApiKey" => apiKey)
     end
-    loggerEventProperties = stringify(; kwargs...)
-    return SeqLogger(urlEndpoint, header, minLevel, loggerEventProperties, postType)
+    eventProperties = stringify(; kwargs...)
+    return SeqLogger(urlEndpoint,
+                     header,
+                     minLevel,
+                     Ref(eventProperties),
+                     postType,
+                     String[],
+                     batchSize)
 end
 
-Logging.shouldlog(logger::AbstractSeqLogger, arg...) = true
-Logging.min_enabled_level(logger::AbstractSeqLogger) = logger.minLevel
-Logging.catch_exceptions(logger::AbstractSeqLogger) = false
+Logging.shouldlog(logger::SeqLogger, arg...) = true
+Logging.min_enabled_level(logger::SeqLogger) = logger.minLevel
+Logging.catch_exceptions(logger::SeqLogger) = false
 
-function Logging.handle_message(logger::AbstractSeqLogger, args...; kwargs...)
-    handleMessageArgs = LoggingExtras.handle_message_args(args...; kwargs...)
-    eventJson = parse_event_from_args(logger, handleMessageArgs)
-    post_event(logger, eventJson)
+function event_property!(logger::SeqLogger; kwargs...)
+    newEventProperties = stringify(; kwargs...)
+    if isempty(logger.eventProperties[])
+        logger.eventProperties[] = newEventProperties
+    else
+        logger.eventProperties[] = join([logger.eventProperties[],
+                                         newEventProperties], ",")
+    end
     return nothing
 end
 
-function parse_event_from_args(logger::AbstractSeqLogger, handleMessageArgs)
+"""
+    Logging.with_logger(@nospecialize(f::Function), logger::SeqLogger)
+
+Extends the method [`Logging.with_logger`](@ref) to work for a `SeqLogger`.
+"""
+function Logging.with_logger(@nospecialize(f::Function), seqLogger::SeqLogger)
+    result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(seqLogger))
+    flush_events(seqLogger)
+    return result
+end
+
+const l = ReentrantLock()
+
+function Logging.handle_message(logger::SeqLogger, args...; kwargs...)
+    lock(l)
+    try
+        handleMessageArgs = LoggingExtras.handle_message_args(args...; kwargs...)
+        eventJson = parse_event_from_args(logger, handleMessageArgs)
+        push!(logger.eventBatch, eventJson)
+        if length(logger.eventBatch) >= logger.batchSize
+            flush_events(logger)
+        end
+    finally
+        unlock(l)
+    end
+    return nothing
+end
+
+function parse_event_from_args(logger::SeqLogger, handleMessageArgs)
     lineEventProperties = stringify(; _file=handleMessageArgs.file, _line=handleMessageArgs.line)
     kwargEventProperties = stringify(; handleMessageArgs.kwargs...)
     cleanMessage = replace_invalid_character("$(handleMessageArgs.message)")
@@ -67,28 +108,100 @@ function parse_event_from_args(logger::AbstractSeqLogger, handleMessageArgs)
     defaultEventProperties = [atTime, atMsg, atLevel]
     additonalEventProperties = [event for event in (lineEventProperties,
                                                     kwargEventProperties,
-                                                    logger.loggerEventProperties) if !isempty(event) ]
+                                                    logger.eventProperties[]) if !isempty(event) ]
     event = join([defaultEventProperties..., additonalEventProperties...], ",")
     return "{$event}"
 end
 
-function post_event(logger::SeqLogger{Background}, eventJson)
+function flush_events(logger::SeqLogger)
+    if !isempty(logger.eventBatch)
+        eventBatchJson = join(logger.eventBatch, "\n")
+        empty!(logger.eventBatch)
+        post_json(logger, eventBatchJson)
+    end
+    return nothing
+end
+
+"""
+    flush_current_logger()
+
+Post the events in the logger batch event for the logger for the current task,
+or the global logger if none is attached to the task.
+
+### Note
+In the main moduel of `Atom`, the `current_logger` is `Atom.Progress.JunoProgressLogger()`.
+Therefore, if you set `SeqLogger` as a [Logging.global_logger](@ref) in in `Atom`
+use [`flush_global_logger`](@ref).
+"""
+function flush_current_logger()
+    currentLogger = Logging.current_logger()
+    flush_events(currentLogger)
+    nothing
+end
+
+"""
+    flush_global_logger()
+
+Post the events in the logger batch event for the global logger.
+
+### Note
+If the logger is run with [`Logging.with_logger`](@ref), this is considered a
+current logger [Logging.current_logger](@ref) and  [`flush_current_logger`](@ref).
+needs to be used.
+"""
+function flush_global_logger()
+    currentLogger = Logging.global_logger()
+    flush_events(currentLogger)
+    nothing
+end
+
+
+function post_json(logger::SeqLogger{Background}, jsonBody)
     worker = WorkerUtilities.@spawn begin
-        HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
+        HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
     end
     fetch(worker)
     return nothing
 end
 
-function post_event(logger::SeqLogger{Parallel}, eventJson)
+function post_json(logger::SeqLogger{Parallel}, jsonBody)
     worker = Threads.@spawn begin
-        HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
+        HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
     end
     fetch(worker)
     return nothing
 end
 
-function post_event(logger::SeqLogger{Serial}, eventJson)
-    HTTP.request("POST", logger.serverUrl, logger.header, eventJson)
+function post_json(logger::SeqLogger{Serial}, jsonBody)
+    HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
     return nothing
 end
+
+# ==== Extend with_logger to work with  LoggingExtras.TeeLogger =====
+"""
+    Logging.with_logger(@nospecialize(f::Function), demuxLogger::TeeLogger)
+
+Extends the method [`Logging.with_logger`](@ref) to work for a `LoggingExtras.TeeLogger`
+containing a `SeqLogger`.
+"""
+function Logging.with_logger(@nospecialize(f::Function), demuxLogger::TeeLogger)
+    result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demuxLogger))
+    flush_events(demuxLogger)
+    return result
+end
+
+"""
+    flush_events(teeLogger::LoggingExtras.TeeLogger)
+
+Extend `flush_events` to a work for a `LoggingExtras.TeeLogger`
+containing a `SeqLogger`.
+"""
+function flush_events(teeLogger::LoggingExtras.TeeLogger)
+    loggers = teeLogger.loggers # LoggingExtras API
+    for logger in loggers
+        flush_events(logger)
+    end
+    return nothing
+end
+
+flush_events(::Logging.AbstractLogger) = nothing
