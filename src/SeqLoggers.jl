@@ -13,6 +13,6 @@ using Dates
 using HTTP
 
 include("utils.jl")
-include("seq_logger.jl")
+include("loggers.jl")
 
 end

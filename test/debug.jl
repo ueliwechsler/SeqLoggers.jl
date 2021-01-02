@@ -143,9 +143,4 @@ logger = SeqLogger(serverUrl, ; App="Trialrun")
 Logging.global_logger(logger)
 @info "Test"
 @info "Test3\n, \r, \\ \""
-
-
-
-batchSeqLogger = BatchSeqLogger(serverUrl; batchSize=10, App="Trialrun", Env="Test")
-Logging.global_logger(batchSeqLogger)
-@info "Test"
+SeqLoggers.flush_global_logger()

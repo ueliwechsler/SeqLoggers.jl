@@ -7,7 +7,7 @@ SeqLoggers.flush_global_logger()
 
 batchSeqLogger = SeqLogger(serverUrl; batchSize=1, App="Trialrun", Env="Test")
 Logging.global_logger(batchSeqLogger)
-@info "Batchtest"
+@info "Batch=1 test; doesn't need to flush"
 
 
 # write TeeLogger
@@ -18,14 +18,15 @@ teeLogger = SeqLoggers.LoggingExtras.TeeLogger(
 )
 
 Logging.with_logger(teeLogger) do
-    @info "Test"
+    @info "Test teelogger, plus does not need to flush, because run with `with_logger`"
 end
 
 SeqLoggers.Logging.global_logger(teeLogger)
 SeqLoggers.Logging.global_logger()
-@info "1"
-SeqLoggers.flush_global_logger() # flushes the global_logger()
+@info "In Atom main module, the current logger is an atomlogger"
 SeqLoggers.flush_current_logger() # flushes the current_logger()
+@info "And to flush global logger, we need the flush_global_logger function"
+SeqLoggers.flush_global_logger() # flushes the global_logger()
 
 logger1 = Logging.ConsoleLogger(stderr)
 logger3 = SeqLogger(serverUrl, ; App="Trialrun")
