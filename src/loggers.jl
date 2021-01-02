@@ -59,6 +59,7 @@ Logging.shouldlog(logger::SeqLogger, arg...) = true
 Logging.min_enabled_level(logger::SeqLogger) = logger.minLevel
 Logging.catch_exceptions(logger::SeqLogger) = false
 
+# NOTE: does not overwrite existing properties, just adds the up (but works)
 function event_property!(logger::SeqLogger; kwargs...)
     newEventProperties = stringify(; kwargs...)
     if isempty(logger.eventProperties[])
@@ -205,3 +206,12 @@ function flush_events(teeLogger::LoggingExtras.TeeLogger)
 end
 
 flush_events(::Logging.AbstractLogger) = nothing
+
+event_property!(logger::AbstractLogger; kwargs...) = nothing
+function event_property!(teelogger::LoggingExtras.TeeLogger; kwargs...)
+    loggers = teelogger.loggers
+    for logger in loggers
+        event_property!(logger; kwargs...)
+    end
+    return nothing
+end

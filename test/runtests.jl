@@ -1,5 +1,6 @@
 using SeqLoggers
 using Test
+using LoggingExtras
 
 @testset "SeqLoggers.jl" begin
 
@@ -64,6 +65,10 @@ end
     @test logger.eventProperties[] == "\"newProperty\":\"DynamicProperty\""
     SeqLoggers.event_property!(logger; next="true")
     @test logger.eventProperties[] == "\"newProperty\":\"DynamicProperty\",\"next\":\"true\""
+    combinedLogger = TeeLogger(Logging.current_logger(), logger)
+    SeqLoggers.event_property!(combinedLogger; next3="true3")
+    @test combinedLogger.loggers[2].eventProperties[] ==
+        "\"newProperty\":\"DynamicProperty\",\"next\":\"true\",\"next3\":\"true3\""
 end
 
 end

@@ -108,8 +108,9 @@ bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.Background();)
 
 
 ##
-
-@time Logging.with_logger(batchSeqLogger) do
+serverUrl = "http://localhost:5341/"
+serialLogger = SeqLogger(serverUrl; App="Trialrun")
+@time Logging.with_logger(serialLogger) do
     @debug "Debug Event Welt"
     sleep(0.1)
     @info "Info Event"
@@ -118,11 +119,13 @@ bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.Background();)
     sleep(0.1)
     @error "Error Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
+    SeqLoggers.event_property!(serialLogger; new="NewProperty")
+    @info "Info Event with additional event property: {new}"
 end
 
 # In combination with LoggingExtras.jl
 using LoggingExtras
-combinedLogger = TeeLogger(Logging.current_logger(), bgLogger)
+combinedLogger = TeeLogger(Logging.current_logger(), serialLogger)
 
 @time Logging.with_logger(combinedLogger) do
     @debug "Debug Event Welt"
@@ -133,7 +136,10 @@ combinedLogger = TeeLogger(Logging.current_logger(), bgLogger)
     sleep(0.1)
     @error "Error Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
+    SeqLoggers.event_property!(serialLogger; new="NewPropertyTee")
+    @info "Info Event with additional event property: {new}"
 end
+
 
 
 ## Invalid Strings
