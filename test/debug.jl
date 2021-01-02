@@ -63,6 +63,7 @@ end
 
 ## Define Loggers
 serverUrl = "http://subdn215:5341/"
+serverUrl = "http://localhost:5341/"
 parallelLogger = SeqLogger(serverUrl, SeqLoggers.Parallel(); App="Trialrun")
 serialLogger = SeqLogger(serverUrl, SeqLoggers.Serial(); App="Trialrun")
 
@@ -134,3 +135,18 @@ combinedLogger = TeeLogger(Logging.current_logger(), bgLogger)
     @error "Error Event with multiple logger event properties: User: {User}, machine: {machine}" User="Ueli Wechsler" machine="speedy"
     sleep(0.1)
 end
+
+
+## Invalid Strings
+
+serverUrl = "http://localhost:5341/"
+logger = SeqLogger(serverUrl, ; App="Trialrun")
+Logging.global_logger(logger)
+@info "Test"
+@info "Test2\n, \r, \\ \""
+
+
+
+batchSeqLogger = BatchSeqLogger(serverUrl; batchSize=10, App="Trialrun", Env="Test")
+Logging.global_logger(batchSeqLogger)
+@info "Test"

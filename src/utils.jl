@@ -1,7 +1,8 @@
 function replace_invalid_character(string::AbstractString)
     substitutions = ["\\" => "/",
                      "\"" => "'",
-                     "\n" => "\\n"]
+                     "\n" => "\\n",
+                     "\r" => "\\r"]
     for sub in substitutions
         string = replace(string, sub)
     end

@@ -18,8 +18,8 @@ using Test
     url4 = SeqLoggers.joinurl("http://localhost:8080", "/index.html")
     @test url1 == url2 == url3 == url4 == "http://localhost:8080/index.html"
 
-    invalidString = "Test\"BadString\\"
-    validString = "Test'BadString/"
+    invalidString = "Test\" \nBadString\\\r"
+    validString = "Test' \\nBadString/"
     @test SeqLoggers.replace_invalid_character(invalidString) == validString
 end
 
@@ -49,7 +49,8 @@ end
     @test Logging.min_enabled_level(seqLogger) == minLevel
     @test Logging.catch_exceptions(seqLogger) == false
 
-
 end
+
+
 
 end
