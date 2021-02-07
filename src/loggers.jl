@@ -17,19 +17,36 @@ struct SeqLogger{PT<:PostType} <: AbstractLogger
 end
 
 """
-    SeqLogger(serverUrl="http://localhost:5341", postType=Background();
-                   minLevel=Logging.Info, apiKey="", kwargs...)
+    SeqLogger(serverUrl="http://localhost:5341", postType=Serial();
+              minLevel=Logging.Info,
+              apiKey="",
+              batchSize=10,
+              kwargs...)
 
-Logger that sends log events to a `Seq` logging server.
+Logger to post log events to a `Seq` log server.
 
-### Notes
-The `kwargs` correspond to additional log event properties that can be added "globally"
-for a `SeqLogger` instance.
-e.g.
-App = "DJSON", Env = "Test" # Dev, Prod, Test, UAT, HistoryId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+### Inputs
+- `serverUrl` -- (optional, `default="http://localhost:5341"`) `Seq` server url
+- `postType` -- (optional, `default=Serial()`) defines how `HTTP` posts the log events
+- `minLevel` -- (optional, `default=Logging.Info`) minimal log level required to post events
+- `apiKey` --  (optional, `default=""`) API-key string for registered Applications
+- `batchSize` -- (optional, `default=10`) number of log events sent to `Seq` server in single post
+- `kwargs` -- (optional) global log event properties
 
-Additional log events can also be added separately for each idividual log event
-`@info "Event" logEventProperty="logEventValue"`
+#### Global Log Event Properties
+The user can provide the logger with global log event properties by using the
+keyword-arguments `kwargs`.
+```julia
+SeqLogger(; App="DJSON", Env="PROD", Id="24e0d145-d385-424b-b6ec-081aa17d504a")
+```
+
+#### Local Log Event Properties
+For each individual log event, additional log event properties can be added which
+only apply to the respective log event.
+```julia
+@info "Log additional user id {userId}" userId="1"
+```
+This only works, if the [`Logging.current_logger`](@ref) is of type `SeqLogger`.
 """
 function SeqLogger(serverUrl="http://localhost:5341", postType=Serial();
                    minLevel=Logging.Info,
@@ -59,7 +76,21 @@ Logging.shouldlog(logger::SeqLogger, arg...) = true
 Logging.min_enabled_level(logger::SeqLogger) = logger.minLevel
 Logging.catch_exceptions(logger::SeqLogger) = false
 
-# NOTE: does not overwrite existing properties, just adds the up (but works)
+"""
+    event_property!(logger::SeqLogger; kwargs...)
+
+Add one or more event properties to the list of global event properties in `logger`.
+
+### Example
+```julia
+event_property!(logger, user="Me", userId=1)
+```
+### Note
+If a new event property with identical name as an existing on is added with
+`event_property!`, the existing property in `newEventProperties` is not
+replaced, the new property is just added to `newEventProperties`.
+However, this still works since on the `Seq` side the raw post events considers the last property key as the final one if more than one has the same key.
+"""
 function event_property!(logger::SeqLogger; kwargs...)
     newEventProperties = stringify(; kwargs...)
     if isempty(logger.eventProperties[])
@@ -156,7 +187,6 @@ function flush_global_logger()
     nothing
 end
 
-
 function post_json(logger::SeqLogger{Background}, jsonBody)
     worker = WorkerUtilities.@spawn begin
         HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
@@ -178,12 +208,17 @@ function post_json(logger::SeqLogger{Serial}, jsonBody)
     return nothing
 end
 
-# ==== Extend with_logger to work with  LoggingExtras.TeeLogger =====
+# ====================
+# Extend with_logger to work with  LoggingExtras.TeeLogger
+# ====================
 """
     Logging.with_logger(@nospecialize(f::Function), demuxLogger::TeeLogger)
 
 Extends the method [`Logging.with_logger`](@ref) to work for a `LoggingExtras.TeeLogger`
 containing a `SeqLogger`.
+
+### Note
+This constitutes as type piracy and should be treated with caution.
 """
 function Logging.with_logger(@nospecialize(f::Function), demuxLogger::TeeLogger)
     result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demuxLogger))

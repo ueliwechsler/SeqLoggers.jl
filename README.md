@@ -7,109 +7,96 @@
 [![Build Status](https://travis-ci.com/ueliwechsler/SeqLoggers.jl.svg?branch=master)](https://travis-ci.com/ueliwechsler/SeqLoggers.jl)
 [![Coverage](https://codecov.io/gh/ueliwechsler/SeqLoggers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ueliwechsler/SeqLoggers.jl)
 
-`SeqLoggers` is a tool for logging event to the `Seq` logger https://datalust.co/seq for the `Julia` Programming language.
+`SeqLoggers.jl` is a tool for sending log events to a [`Seq` log server](https://datalust.co/seq) using the `Julia` Programming language.
 
-It utilizes the standard way of logging in `Julia` with the macros `@error` `@warn` `@info` `@debug`  and `AbstractLogger` interface to create log events.  
+`SeqLoggers.jl` extends the `AbstractLogger` interface to create log events using the macros:
+- `@debug`,
+- `@info`,
+- `@warn` and
+- `@error`.
 
-The log events are posted to the `Seq` logger using `HTTP.jl` and the raw-event API described at https://docs.datalust.co/docs/posting-raw-events.
+Log events are subsequently posted to the `Seq` log server using `HTTP.jl` and the [`Seq` raw-event API](https://docs.datalust.co/docs/posting-raw-events).
 
-> :warning: Note: This is an unoffical package and not yet production ready.
+Additionally, features from [`LoggingExtras.jl`](https://github.com/oxinabox/LoggingExtras.jl) are used to provide more complex logger types.
+
+> :warning: Coping-pasting the examples on this page might introduce invisible extra characters that cannot be handled by the `Seq` server. When in doubt, replicate the examples without copying the log event strings.
 
 ## Install Seq
-
-Install Seq for free for development purposesor single-user deployment by following
-the instruction on: https://docs.datalust.co/docs/getting-started
-
-The `Seq` log can then be accessed on http://localhost:5341.
+The `Seq` software is avabilable for free for development purposes or single-user deployment ([Installation instructions](https://docs.datalust.co/docs/getting-started)).
 
 ## Logging in julia
-https://docs.julialang.org/en/v1/stdlib/Logging/
+- https://docs.julialang.org/en/v1/stdlib/Logging/
 
-In Julia, the `Logging` module module provides a way to record the history and progress of a computation as a log of events. Events are created by inserting a logging statement into the source code using the macros `@error`, `@warn` `@info`, and  `@debug` (see https://docs.julialang.org/en/v1/stdlib/Logging/ for more information).
+Using the `Logging` module, log events are created by inserting a logging statement into the source code using the macros `@debug`, `@info`,  `@warn` and `@error`.
 
-The default logger is a `ConsoleLogger` which prints the logging event directly in the `Julia` REPL.
+```julia
+@info "Log Event with `Information` level"
+```
 
-The currently active logger can be obtained by running
+The currently active global logger can be obtained by running
 ```julia
 using Logging
-global_logger()
+global_logger() # ConsoleLogger(...)
 ```
-and can be changed with
-```
-global_logger(myFancyNewLogger)
-```
-where `myFancyNewLogger<:AbstractLogger`.
+As default, a `ConsoleLogger` is provided, which prints the logging event directly to the `Julia` REPL.
 
-Alternatively, a code section can be wrapped inside  a `with_logger` `do` block to use a specific logger for the log events of that section.
+The global logger can be set to any logger `newLogger<:AbstractLogger` by calling `global_logger(newLogger)`.
+
+Alternatively, a code section can be wrapped inside  a `with_logger` `do`-block to use a specific logger for the execution of the code  contained in the `do`-block.
 ```julia
-Logging.with_logger(myLogger) do
+Logging.with_logger(newLogger) do
     ...
 end
 ```
+Within the scope of the `do`-block, the active logger can be obtained by calling `current_logger()`.
 
-## SeqLoggers
-
-The pacakge `SeqLoggers.jl` provides a set of loggers to replace the default logger and give you the functionality to store log events on a `Seq` server.
+## SeqLoggers.jl
+`SeqLoggers.jl` provides a new logger type `SeqLogger<:AbstractLogger`   to replace the default logger to enable the user to post log events to a `Seq` log server.
 
 ### Basics
-
-A `SeqLogger` is used to replace the currently active logger for a certain part of the code where the log events should be stored on the `Seq` server.
-
-The basic `Seq` logger is called `SeqLogger` and is constructed as:
+A `SeqLogger` is constructed by calling the constructor with the same name.
 ```julia
 using SeqLoggers
-serverUrl = "http://localhost:5341"
-seqLogger = SeqLogger(serverUrl; # url of server hosting `seq`
+seqLogger = SeqLogger("http://localhost:5341"; # `Seq` server url
                       minLevel=Logging.Info, # define minimal level for log events
                       apiKey="", # api-key for registered Apps
+                      batchSize=1,
                       App="Trialrun", # additional log event properties
-                      Env="Test")
-
+                      Env="UAT")
 ```
 
-The resulting logger posts every single log event directly to the `Seq` server `"http://localhost:5341"` (see [Advanced](#Advanced) for how this works under the hood and explanation of the optinal second argument).
+The resulting logger `seqLogger` posts each log event separately to the `Seq` server with url `"http://localhost:5341"`.
 
-The logger can be used both with `global_logger` and `with_logger`, e.g.
+If the performance overhead from posting the log events separately is to high, log events can be stored and posted in a batch. The constructor keyword argument `batchSize` defines the size of a log event batch. Once the logger has received a number of log events equal to `batchSize`, all events are sent to the `Seq` log server in one post. By default, `batchSize=10`.
+
+Therefore, for proper functionality with `batchSize>1`, it is required to use the `SeqLogger` by calling `with_logger` (and not add it as a global logger) to ensure that all log events will be sent to the log server.
+
 ```julia
 Logging.with_logger(seqLogger) do
     @info "Log me into `Seq` with property user = {user}" user="Me"
 end
 ```
-Note, that beside the "global" log event properties (`App="Trialrun"` and `Env="Test"`) belonging to a the `seqLogger`, we provided an additional log event property `user="Me"` which will be substituted into the log message at `{user}`.
+In this example, besides the _global_ log event properties `App="Trialrun"` and `Env="Test"` also a _local_ log event property `user="Me"` was added.
 
-### BatchSeqLogger
-If the performance overhead introduced by the `SeqLogger` is unacceptable, the `BatchSeqLogger` might be of use which batches several log events before posting instead of posting every event one-by-one.
+Note, that all elements surrounded by curly brackets, e.g. `{user}`, will be replaced (on the server-side) by the corresponding log event property if it exists.
 
-> :warning: Due to the structure of the `BatchSeqLogger`, it can only be used with `with_logger` and must not be set as `global_logger` to ensure that all log events will be sent.
-
-The `BatchSeqLogger` is created similarly with 
-```julia
-batchSeqLogger = BatchSeqLogger(serverUrl; # url of server hosting `seq`
-                      minLevel=Logging.Info, # define minimal level for log events
-                      apiKey="", # api-key for registered Apps
-                      batchSize=10, # number of events in batch before posting to `seq` server
-                      App="Trialrun", # additional log event properties
-                      Env="Test")
-```
-with the additional keyword argument `batchSize,` defining the number of log events stored before posting, and can be used as
-```julia
-Logging.with_logger(batchSeqLogger) do
-    @info "Log me into `Seq` with property user = {user}" user="Me"
-end
-```
-
-### LoggingExtras
-The loggers provided by `SeqLoggers.jl` can also be combined with the functionality of [`LoggingExtras.jl`](https://github.com/oxinabox/LoggingExtras.jl).
+### Interaction with `LoggingExtras.jl`
+`SeqLogger`s can also be combined with the functionality of [`LoggingExtras.jl`](https://github.com/oxinabox/LoggingExtras.jl) .
 ```
 using LoggingExtras
-combinedLogger = TeeLogger(Logging.current_logger(), batchSeqLogger)
+combinedLogger = TeeLogger(Logging.current_logger(), seqLogger)
 ```
-where the `combinedLogger` does log to both the `Julia` REPL and the `Seq` server defiend by `batchSeqLogger`.
+In this example, the `combinedLogger` logs both to the `Julia` REPL (if the current logger was a `ConsoleLogger`) and the `Seq` log server defined by `seqLogger`.
 
-### Advanced
-TODO: add explanation of second optinal argument to `SeqLogger`
+### Explanation of `SeqLoggers.PostType`
+In the `SeqLogger` constructor, there is an second argument `postType`.
+For most cases, one can ignore this argument and use the default value  `Serial()`.
 
+However, if the performance of the `SeqLogger` is not satisfying, it might pay off to experiment with the different settings.
+
+- `Serial():` the log event are posted without any multi-threading.
+- `Parallel():` the log event are posted using `Threads.@spawn` which allows to use multi-threading.
+- `Background(nWorkers):` the log event are posted using `WorkerUtilities.@spawn` which allows to use multi-threading and run the post action as a _true_ background task where `nWorkers` is the amount of background workers used.
 
 ### FAQ
-
-> :warning: Coping-pasting the examples on this page might introduce invisible extra characters that cannot be handled by the `Seq` server. When in doubt replicate the examples without copying the log strings.
+- The default `Seq` log server can be accessed on http://localhost:5341.
