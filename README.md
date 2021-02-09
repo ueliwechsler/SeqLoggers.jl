@@ -93,7 +93,6 @@ In the `SeqLogger` constructor, there is an second argument `postType`.
 For most cases, one can ignore this argument and use the default value  `Serial()`.
 
 However, if the performance of the `SeqLogger` is not satisfying, it might pay off to experiment with the different settings.
-
 - `Serial():` the log event are posted without any multi-threading.
 - `Parallel():` the log event are posted using `Threads.@spawn` which allows to use multi-threading.
 - `Background(nWorkers):` the log event are posted using `WorkerUtilities.@spawn` which allows to use multi-threading and run the post action as a _true_ background task where `nWorkers` is the amount of background workers used.
