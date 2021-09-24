@@ -1,21 +1,22 @@
 module SeqLoggers
 
 using Logging
-# using Logging: Debug, Info, Warn, Error
-using WorkerUtilities
 using LoggingExtras
 using Dates
 using HTTP
+using JSON3
 
 include("utils.jl")
 
 include("loggers.jl")
 export SeqLogger
+export run_with_logger
 
 include("logging_extras.jl")
 
-# TODO: add load logger from config
-# TODO: add run_with_logger
+include("load_from_config.jl")
+export load_logger_from_config
+
 
 end
 

@@ -25,18 +25,23 @@ function stringify(; kwargs...)
     return join(event_properties, ",")
 end
 
+"""
+    to_seq_level(log_level::Base.CoreLogging.LogLevel)
 
-function to_seq_level(logLevel::Base.CoreLogging.LogLevel)
-    if logLevel == Logging.Debug
+Given a `Logging.LogLevel` return the string identifier for the log level used on the `Seq` server.
+"""
+function to_seq_level(log_level::Base.CoreLogging.LogLevel)
+    if log_level == Logging.Debug
         return "Debug"
-    elseif logLevel == Logging.Info
+    elseif log_level == Logging.Info
         return "Info"
-    elseif logLevel == Logging.Warn
+    elseif log_level == Logging.Warn
         return "Warning"
-    elseif logLevel == Logging.Error
+    elseif log_level == Logging.Error
         return "Error"
     end
 end
+
 
 """
     joinurl(left::AbstractString, right::AbstractString)

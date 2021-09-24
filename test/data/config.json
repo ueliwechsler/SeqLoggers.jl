@@ -1,0 +1,17 @@
+{
+    "logging": {
+        "SeqLogger": {
+            "server_url": "test",
+            "min_level": "INFO"
+        },
+        "ConsoleLogger":{
+            "min_level": "DEBUG"            
+        },
+        "FileLogger": {
+            "min_level": "WARN",
+            "file_path": "C:\\Temp\\test.txt",
+            "append": false
+
+        }
+    }
+}
