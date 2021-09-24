@@ -85,14 +85,5 @@ combinedLogger = TeeLogger(Logging.current_logger(), seqLogger)
 ```
 In this example, the `combinedLogger` logs both to the `Julia` REPL (if the current logger was a `ConsoleLogger`) and the `Seq` log server defined by `seqLogger`.
 
-### Explanation of `SeqLoggers.post_type`
-In the `SeqLogger` constructor, there is an second argument `post_type`.
-For most cases, one can ignore this argument and use the default value  `SerialPost()`.
-
-However, if the performance of the `SeqLogger` is not satisfying, it might pay off to experiment with the different settings.
-- `SerialPost():` the log event are posted without any multi-threading.
-- `ParallelPost():` the log event are posted using `Threads.@spawn` which allows to use multi-threading.
-- `BackgroundPost(number_workers):` the log event are posted using `WorkerUtilities.@spawn` which allows to use multi-threading and run the post action as a _true_ BackgroundPost task where `number_workers` is the amount of BackgroundPost workers used.
-
 ### FAQ
 - The default `Seq` log server can be accessed on http://localhost:5341.
