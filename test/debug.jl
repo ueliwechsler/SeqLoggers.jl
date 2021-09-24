@@ -59,18 +59,18 @@ function parallel_iterations2(logger, nIter, duration=0.1)
 end
 
 ## Define Loggers
-# serverUrl = "http://subdn215:5341/"
-serverUrl = "http://localhost:5341/"
-parallelLogger = SeqLogger(serverUrl, SeqLoggers.Parallel(); App="Trialrun")
-serialLogger = SeqLogger(serverUrl; App="Trialrun")
-bgLogger = SeqLogger(serverUrl, SeqLoggers.Background();App="Trialrun", Env="Test")
-serialLoggerBatchSize1 = SeqLogger(serverUrl; batchSize=1, App="Trialrun")
+# server_url = "http://subdn215:5341/"
+server_url = "http://localhost:5341/"
+parallelLogger = SeqLogger(server_url, SeqLoggers.ParallelPost(); App="Trialrun")
+serialLogger = SeqLogger(server_url; App="Trialrun")
+bgLogger = SeqLogger(server_url, SeqLoggers.BackgroundPost();App="Trialrun", Env="Test")
+serialLoggerBatchSize1 = SeqLogger(server_url; batch_size=1, App="Trialrun")
 
-bg3Logger = SeqLogger(serverUrl, SeqLoggers.Background(3); App="Trialrun", Env="Test")
-bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.Background();)
+bg3Logger = SeqLogger(server_url, SeqLoggers.BackgroundPost(3); App="Trialrun", Env="Test")
+bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.BackgroundPost();)
 
 ## Benchmarks
-# We only need, background, serial and batched logger (batched is the best (but parallelisation?))
+# We only need, BackgroundPost, SerialPost and batched logger (batched is the best (but parallelisation?))
 @elapsed busy_iterations(parallelLogger, 10)
 @elapsed busy_iterations(serialLogger, 10)
 @elapsed busy_iterations(serialLoggerBatchSize1, 10)
@@ -108,8 +108,8 @@ bgBrokenLogger = SeqLogger("brokenUrl", SeqLoggers.Background();)
 
 
 ##
-serverUrl = "http://localhost:5341/"
-serialLogger = SeqLogger(serverUrl; App="Trialrun")
+server_url = "http://localhost:5341/"
+serialLogger = SeqLogger(server_url; App="Trialrun")
 @time Logging.with_logger(serialLogger) do
     @debug "Debug Event Welt"
     sleep(0.1)
@@ -144,8 +144,8 @@ end
 
 ## Invalid Strings
 
-serverUrl = "http://localhost:5341/"
-logger = SeqLogger(serverUrl, ; App="Trialrun")
+server_url = "http://localhost:5341/"
+logger = SeqLogger(server_url, ; App="Trialrun")
 Logging.global_logger(logger)
 @info "Test"
 @info "Test3\n, \r, \\ \""

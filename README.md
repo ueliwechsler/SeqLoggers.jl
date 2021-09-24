@@ -55,18 +55,18 @@ A `SeqLogger` is constructed by calling the constructor with the same name.
 ```julia
 using SeqLoggers
 seqLogger = SeqLogger("http://localhost:5341"; # `Seq` server url
-                      minLevel=Logging.Info, # define minimal level for log events
-                      apiKey="", # api-key for registered Apps
-                      batchSize=1,
+                      min_level=Logging.Info, # define minimal level for log events
+                      api_key="", # api-key for registered Apps
+                      batch_size=1,
                       App="Trialrun", # additional log event properties
                       Env="UAT")
 ```
 
 The resulting logger `seqLogger` posts each log event separately to the `Seq` server with url `"http://localhost:5341"`.
 
-If the performance overhead from posting the log events separately is to high, log events can be stored and posted in a batch. The constructor keyword argument `batchSize` defines the size of a log event batch. Once the logger has received a number of log events equal to `batchSize`, all events are sent to the `Seq` log server in one post. By default, `batchSize=10`.
+If the performance overhead from posting the log events separately is to high, log events can be stored and posted in a batch. The constructor keyword argument `batch_size` defines the size of a log event batch. Once the logger has received a number of log events equal to `batch_size`, all events are sent to the `Seq` log server in one post. By default, `batch_size=10`.
 
-Therefore, for proper functionality with `batchSize>1`, it is required to use the `SeqLogger` by calling `with_logger` (and not add it as a global logger) to ensure that all log events will be sent to the log server.
+Therefore, for proper functionality with `batch_size>1`, it is required to use the `SeqLogger` by calling `with_logger` (and not add it as a global logger) to ensure that all log events will be sent to the log server.
 
 ```julia
 Logging.with_logger(seqLogger) do
@@ -85,14 +85,14 @@ combinedLogger = TeeLogger(Logging.current_logger(), seqLogger)
 ```
 In this example, the `combinedLogger` logs both to the `Julia` REPL (if the current logger was a `ConsoleLogger`) and the `Seq` log server defined by `seqLogger`.
 
-### Explanation of `SeqLoggers.PostType`
-In the `SeqLogger` constructor, there is an second argument `postType`.
-For most cases, one can ignore this argument and use the default value  `Serial()`.
+### Explanation of `SeqLoggers.post_type`
+In the `SeqLogger` constructor, there is an second argument `post_type`.
+For most cases, one can ignore this argument and use the default value  `SerialPost()`.
 
 However, if the performance of the `SeqLogger` is not satisfying, it might pay off to experiment with the different settings.
-- `Serial():` the log event are posted without any multi-threading.
-- `Parallel():` the log event are posted using `Threads.@spawn` which allows to use multi-threading.
-- `Background(nWorkers):` the log event are posted using `WorkerUtilities.@spawn` which allows to use multi-threading and run the post action as a _true_ background task where `nWorkers` is the amount of background workers used.
+- `SerialPost():` the log event are posted without any multi-threading.
+- `ParallelPost():` the log event are posted using `Threads.@spawn` which allows to use multi-threading.
+- `BackgroundPost(number_workers):` the log event are posted using `WorkerUtilities.@spawn` which allows to use multi-threading and run the post action as a _true_ BackgroundPost task where `number_workers` is the amount of BackgroundPost workers used.
 
 ### FAQ
 - The default `Seq` log server can be accessed on http://localhost:5341.

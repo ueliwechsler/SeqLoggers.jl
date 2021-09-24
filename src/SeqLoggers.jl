@@ -1,10 +1,5 @@
 module SeqLoggers
 
-export Logging
-
-export SeqLogger
-# export flush_current_logger, flush_global_logger, event_property!
-
 using Logging
 # using Logging: Debug, Info, Warn, Error
 using WorkerUtilities
@@ -13,6 +8,16 @@ using Dates
 using HTTP
 
 include("utils.jl")
+
+include("post_types.jl")
+
 include("loggers.jl")
+export SeqLogger
+
+include("logging_extras.jl")
+
+# TODO: add load logger from config
+# TODO: add run_with_logger
 
 end
+

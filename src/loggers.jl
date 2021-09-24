@@ -1,111 +1,91 @@
-abstract type PostType end
-struct Parallel <:PostType end
-struct Serial <:PostType end
-struct Background <:PostType
-    nWorkers::Int
-end
-Background() = Background(one(Int))
 
 struct SeqLogger{PT<:PostType} <: AbstractLogger
-    serverUrl::String
+    server_url::String
     header::Vector{Pair{String,String}}
-    minLevel::Logging.LogLevel
-    eventProperties::Ref{String}
-    postType::PT
-    eventBatch::Vector{String}
-    batchSize::Int
+    min_level::Logging.LogLevel
+    event_properties::Ref{String}
+    post_type::PT
+    event_batch::Vector{String}
+    batch_size::Int
 end
 
 """
-    SeqLogger(serverUrl="http://localhost:5341", postType=Serial();
-              minLevel=Logging.Info,
-              apiKey="",
-              batchSize=10,
-              kwargs...)
+    SeqLogger(
+        server_url::AbstractString, 
+        post_type::PostType=SerialPost();
+        min_level::Logging.LogLevel=Logging.Info,
+        api_key::AbstractString="",
+        batch_size::Int=10,
+        event_properties...
+    )
 
 Logger to post log events to a `Seq` log server.
 
 ### Inputs
-- `serverUrl` -- (optional, `default="http://localhost:5341"`) `Seq` server url
-- `postType` -- (optional, `default=Serial()`) defines how `HTTP` posts the log events
-- `minLevel` -- (optional, `default=Logging.Info`) minimal log level required to post events
-- `apiKey` --  (optional, `default=""`) API-key string for registered Applications
-- `batchSize` -- (optional, `default=10`) number of log events sent to `Seq` server in single post
-- `kwargs` -- (optional) global log event properties
+- `server_url` -- `Seq` server url (e.g. `"http://localhost:5341"`)
+- `post_type` -- (optional, `default=SerialPost()`) defines if the log events are sent to the 
+    `Seq` server in series or in ParallelPost to the execution of the regular program
+- `min_level` -- (optional, `default=Logging.Info`) minimal log level to filter the log events
+- `api_key` --  (optional, `default=""`) API-key string for registered Applications
+- `batch_size` -- (optional, `default=10`) number of log events sent to `Seq` server in single post
+- `event_properties` -- (optional) global log event properties
 
 #### Global Log Event Properties
-The user can provide the logger with global log event properties by using the
-keyword-arguments `kwargs`.
+The `SeqLogger` constructor allows to add global log event properties to the logger using   keyword-arguments.
 ```julia
-SeqLogger(; App="DJSON", Env="PROD", Id="24e0d145-d385-424b-b6ec-081aa17d504a")
+SeqLogger("http://localhost:5341"; App="DJSON", Env="PROD", Id="24e0d145-d385-424b-b6ec-081aa17d504a")
 ```
 
 #### Local Log Event Properties
 For each individual log event, additional log event properties can be added which
-only apply to the respective log event.
+only apply to a single log event.
 ```julia
 @info "Log additional user id {userId}" userId="1"
 ```
-This only works, if the [`Logging.current_logger`](@ref) is of type `SeqLogger`.
+Note: This only works, if the [`Logging.current_logger`](@ref) is of type `SeqLogger` or "contains" a `SeqLogger`.
 """
-function SeqLogger(serverUrl="http://localhost:5341", postType=Serial();
-                   minLevel=Logging.Info,
-                   apiKey="",
-                   batchSize=10,
-                   kwargs...)
-    if postType isa Background
-        WorkerUtilities.init(postType.nWorkers)
+function SeqLogger(
+    server_url::AbstractString, 
+    post_type::PostType=SerialPost();
+    min_level::Logging.LogLevel=Logging.Info,
+    api_key::AbstractString="",
+    batch_size::Int=10,
+    event_properties...
+)
+    if post_type isa BackgroundPost
+        WorkerUtilities.init(post_type.number_workers)
     end
 
-    urlEndpoint = joinurl(serverUrl, "api/events/raw")
+    url_endpoint = joinurl(server_url, "api/events/raw")
     header = ["Content-Type" => "application/vnd.serilog.clef"]
-    if !isempty(apiKey)
-        push!(header, "X-Seq-ApiKey" => apiKey)
+    if !isempty(api_key)
+        push!(header, "X-Seq-api_key" => api_key)
     end
-    eventProperties = stringify(; kwargs...)
-    return SeqLogger(urlEndpoint,
-                     header,
-                     minLevel,
-                     Ref(eventProperties),
-                     postType,
-                     String[],
-                     batchSize)
+    event_properties_str = stringify(; event_properties...)
+    return SeqLogger(
+        url_endpoint,
+        header,
+        min_level,
+        Ref(event_properties_str),
+        post_type,
+        String[],
+        batch_size
+    )
 end
 
 Logging.shouldlog(logger::SeqLogger, arg...) = true
-Logging.min_enabled_level(logger::SeqLogger) = logger.minLevel
+Logging.min_enabled_level(logger::SeqLogger) = logger.min_level
 Logging.catch_exceptions(logger::SeqLogger) = false
 
-"""
-    event_property!(logger::SeqLogger; kwargs...)
-
-Add one or more event properties to the list of global event properties in `logger`.
-
-### Example
-```julia
-event_property!(logger, user="Me", userId=1)
-```
-### Note
-If a new event property with identical name as an existing on is added with
-`event_property!`, the existing property in `newEventProperties` is not
-replaced, the new property is just added to `newEventProperties`.
-However, this still works since on the `Seq` side the raw post events considers the last property key as the final one if more than one has the same key.
-"""
-function event_property!(logger::SeqLogger; kwargs...)
-    newEventProperties = stringify(; kwargs...)
-    if isempty(logger.eventProperties[])
-        logger.eventProperties[] = newEventProperties
-    else
-        logger.eventProperties[] = join([logger.eventProperties[],
-                                         newEventProperties], ",")
-    end
-    return nothing
-end
 
 """
     Logging.with_logger(@nospecialize(f::Function), logger::SeqLogger)
 
-Extends the method [`Logging.with_logger`](@ref) to work for a `SeqLogger`.
+Extends the function [`Logging.with_logger`](@ref) for `SeqLogger`s.
+
+### Note
+After running the function `f`, the `SeqLogger` needs to flush the log events to
+make sure that the entire log batch is sent to the `Seq` server.
 """
 function Logging.with_logger(@nospecialize(f::Function), seqLogger::SeqLogger)
     result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(seqLogger))
@@ -115,13 +95,22 @@ end
 
 const l = ReentrantLock()
 
+"""
+    Logging.handle_message(logger::SeqLogger, args...; kwargs...)
+
+Extends the function [`Logging.handle_message`](@ref) for `SeqLogger`s.
+
+### Note 
+- If the event batch of the `logger` is "full", the log events are flushed.
+- A `ReentrantLock` is used to make the `logger` thread-safe. 
+"""
 function Logging.handle_message(logger::SeqLogger, args...; kwargs...)
     lock(l)
     try
-        handleMessageArgs = LoggingExtras.handle_message_args(args...; kwargs...)
-        eventJson = parse_event_from_args(logger, handleMessageArgs)
-        push!(logger.eventBatch, eventJson)
-        if length(logger.eventBatch) >= logger.batchSize
+        message_args = LoggingExtras.handle_message_args(args...; kwargs...)
+        event_str = parse_event_str_from_args(logger, message_args)
+        push!(logger.event_batch, event_str)
+        if length(logger.event_batch) >= logger.batch_size
             flush_events(logger)
         end
     finally
@@ -130,26 +119,38 @@ function Logging.handle_message(logger::SeqLogger, args...; kwargs...)
     return nothing
 end
 
-function parse_event_from_args(logger::SeqLogger, handleMessageArgs)
-    lineEventProperties = stringify(; _file=handleMessageArgs.file, _line=handleMessageArgs.line)
-    kwargEventProperties = stringify(; handleMessageArgs.kwargs...)
-    cleanMessage = replace_invalid_character("$(handleMessageArgs.message)")
+"""
+    parse_event_str_from_args(logger::SeqLogger, message_args::NamedTuple)::String
+
+Create a log event string from the named tuple `message_args`.
+"""
+function parse_event_str_from_args(logger::SeqLogger, message_args::NamedTuple)
+    line_event_properties = stringify(; _file=message_args.file, _line=message_args.line)
+    kwarg_event_properties = stringify(; message_args.kwargs...)
+    clean_message = replace_invalid_character("$(message_args.message)")
     atTime = "\"@t\":\"$(now())\""
-    atMsg = "\"@mt\":\"$(cleanMessage)\""
-    atLevel = "\"@l\":\"$(to_seq_level(handleMessageArgs.level))\""
-    defaultEventProperties = [atTime, atMsg, atLevel]
-    additonalEventProperties = [event for event in (lineEventProperties,
-                                                    kwargEventProperties,
-                                                    logger.eventProperties[]) if !isempty(event) ]
-    event = join([defaultEventProperties..., additonalEventProperties...], ",")
-    return "{$event}"
+    atMsg = "\"@mt\":\"$(clean_message)\""
+    atLevel = "\"@l\":\"$(to_seq_level(message_args.level))\""
+    default_event_properties = [atTime, atMsg, atLevel]
+    additonal_event_properties = [
+        event for event in (line_event_properties,
+                            kwarg_event_properties,
+                            logger.event_properties[]) if !isempty(event) ]
+    event_str = join([default_event_properties..., additonal_event_properties...], ",")
+    return "{$event_str}"
 end
 
+"""
+    flush_events(logger::SeqLogger)
+
+Post all log events contained in the event batch of `logger` to the `Seq` server and 
+clear the event batch afterwards.
+"""
 function flush_events(logger::SeqLogger)
-    if !isempty(logger.eventBatch)
-        eventBatchJson = join(logger.eventBatch, "\n")
-        empty!(logger.eventBatch)
-        post_json(logger, eventBatchJson)
+    if !isempty(logger.event_batch)
+        eventBatchJson = join(logger.event_batch, "\n")
+        empty!(logger.event_batch)
+        post_log_events(logger, eventBatchJson)
     end
     return nothing
 end
@@ -166,8 +167,8 @@ Therefore, if you set `SeqLogger` as a [Logging.global_logger](@ref) in in `Atom
 use [`flush_global_logger`](@ref).
 """
 function flush_current_logger()
-    currentLogger = Logging.current_logger()
-    flush_events(currentLogger)
+    current_logger = Logging.current_logger()
+    flush_events(current_logger)
     nothing
 end
 
@@ -182,71 +183,73 @@ current logger [Logging.current_logger](@ref) and  [`flush_current_logger`](@ref
 needs to be used.
 """
 function flush_global_logger()
-    currentLogger = Logging.global_logger()
-    flush_events(currentLogger)
+    current_logger = Logging.global_logger()
+    flush_events(current_logger)
     nothing
 end
 
-function post_json(logger::SeqLogger{Background}, jsonBody)
+""" 
+    post_request(logger::SeqLogger, json_str::AbstractString)
+
+Send POST request with body `json_str` to `Seq` server.
+"""
+function post_request(logger::SeqLogger, json_str::AbstractString)
+    return HTTP.request("POST", logger.server_url, logger.header, json_str)
+end 
+
+"""
+    post_log_events(logger::SeqLogger{<:PostType}, json_str::AbstractString)
+
+Post the log events contained in `json_str` to the `Seq` server.
+
+The [`PostType`](@ref) determines the behaviour of the function. 
+"""
+function post_log_events end
+
+function post_log_events(logger::SeqLogger{BackgroundPost}, json_str::AbstractString)
     worker = WorkerUtilities.@spawn begin
-        HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
+        post_request(logger, json_str)
     end
     fetch(worker)
     return nothing
 end
 
-function post_json(logger::SeqLogger{Parallel}, jsonBody)
+function post_log_events(logger::SeqLogger{ParallelPost}, json_str::AbstractString)
     worker = Threads.@spawn begin
-        HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
+        post_request(logger, json_str)
     end
     fetch(worker)
     return nothing
 end
 
-function post_json(logger::SeqLogger{Serial}, jsonBody)
-    HTTP.request("POST", logger.serverUrl, logger.header, jsonBody)
+function post_log_events(logger::SeqLogger{SerialPost}, json_str::AbstractString)
+    post_request(logger, json_str)
     return nothing
 end
 
-# ====================
-# Extend with_logger to work with  LoggingExtras.TeeLogger
-# ====================
+
 """
-    Logging.with_logger(@nospecialize(f::Function), demuxLogger::TeeLogger)
+    event_property!(logger::SeqLogger; kwargs...)
 
-Extends the method [`Logging.with_logger`](@ref) to work for a `LoggingExtras.TeeLogger`
-containing a `SeqLogger`.
+Add one or more event properties to the list of global event properties in `logger`.
 
+### Example
+```julia
+event_property!(logger, user="Me", userId=1)
+```
 ### Note
-This constitutes as type piracy and should be treated with caution.
+If a new event property with identical name as an existing on is added with
+`event_property!`, the existing property in `new_event_properties` is not
+replaced, the new property is just added to `new_event_properties`.
+However, this still works since on the `Seq` side the raw post events considers the last property key as the final one if more than one has the same key.
 """
-function Logging.with_logger(@nospecialize(f::Function), demuxLogger::TeeLogger)
-    result = Base.CoreLogging.with_logstate(f, Base.CoreLogging.LogState(demuxLogger))
-    flush_events(demuxLogger)
-    return result
-end
-
-"""
-    flush_events(teeLogger::LoggingExtras.TeeLogger)
-
-Extend `flush_events` to a work for a `LoggingExtras.TeeLogger`
-containing a `SeqLogger`.
-"""
-function flush_events(teeLogger::LoggingExtras.TeeLogger)
-    loggers = teeLogger.loggers # LoggingExtras API
-    for logger in loggers
-        flush_events(logger)
-    end
-    return nothing
-end
-
-flush_events(::Logging.AbstractLogger) = nothing
-
-event_property!(logger::AbstractLogger; kwargs...) = nothing
-function event_property!(teelogger::LoggingExtras.TeeLogger; kwargs...)
-    loggers = teelogger.loggers
-    for logger in loggers
-        event_property!(logger; kwargs...)
+function event_property!(logger::SeqLogger; kwargs...)
+    new_event_properties = stringify(; kwargs...)
+    if isempty(logger.event_properties[])
+        logger.event_properties[] = new_event_properties
+    else
+        logger.event_properties[] = join([logger.event_properties[],
+                                          new_event_properties], ",")
     end
     return nothing
 end

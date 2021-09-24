@@ -9,15 +9,20 @@ function replace_invalid_character(string::AbstractString)
     return string
 end
 
+"""
+    stringify(; kwargs...)
+
+Convert keywords arguments into a string that conforms the log event message structure used in the `Seq` logger.
+"""
 function stringify(; kwargs...)
-    eventProperties = Vector{String}()
+    event_properties = Vector{String}()
     for kwarg in kwargs
-        # kwarg.second can have invalid chracters, kwarg.first not
-        cleanKwargSecond = replace_invalid_character("$(kwarg.second)")
-        property = "\"$(kwarg.first)\":\"$(cleanKwargSecond)\""
-        push!(eventProperties, property)
+        # kwarg.second could have invalid characters, kwarg.first not
+        clean_kwarg_second = replace_invalid_character("$(kwarg.second)")
+        property = "\"$(kwarg.first)\":\"$(clean_kwarg_second)\""
+        push!(event_properties, property)
     end
-    return join(eventProperties, ",")
+    return join(event_properties, ",")
 end
 
 
@@ -33,8 +38,13 @@ function to_seq_level(logLevel::Base.CoreLogging.LogLevel)
     end
 end
 
-# NOTE: remove trailing or add additional frontslash
-function joinurl(left, right)
+"""
+    joinurl(left::AbstractString, right::AbstractString)
+
+Join the left and right part of a URL, by removing trailing frontslashes and add
+an additional frontslashes if required.
+"""
+function joinurl(left::AbstractString, right::AbstractString)
     leftStripped = rstrip(left, '/')
     rightStripped = lstrip(right, '/')
     return join([leftStripped, rightStripped], '/')
