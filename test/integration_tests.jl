@@ -1,7 +1,7 @@
 # const SERVER_URL = "http://localhost:5341/"
 const SERVER_URL = "http://subdn215:5341/"
 
-logger = SeqLogger(SERVER_URL, ; App="Trialrun")
+logger = SeqLogger(SERVER_URL; App="Trialrun")
 Logging.global_logger(logger)
 @info "Test"
 @info "Test invalid string\n, \r, \\ \""

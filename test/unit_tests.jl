@@ -35,13 +35,15 @@ minimalSeqLogger.server_url == "http://localhost:5341/api/events/raw"
 @test minimalSeqLogger.event_batch == String[]
 
 min_level = Logging.Debug
-seqLogger = SeqLogger("http://myhost:1010", SeqLoggers.ParallelPost();
-                        min_level=min_level,
-                        api_key="Test",
-                        App="Trialrun",
-                        batch_size=3,
-                        HistoryId=raw"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                        Env="Test")
+seqLogger = SeqLogger(
+    "http://myhost:1010";
+    min_level=min_level,
+    api_key="Test",
+    App="Trialrun",
+    batch_size=3,
+    HistoryId=raw"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    Env="Test"
+)
 
 @test seqLogger.min_level == Logging.Debug
 @test seqLogger.server_url == "http://myhost:1010/api/events/raw"

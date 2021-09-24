@@ -9,8 +9,6 @@ using HTTP
 
 include("utils.jl")
 
-include("post_types.jl")
-
 include("loggers.jl")
 export SeqLogger
 

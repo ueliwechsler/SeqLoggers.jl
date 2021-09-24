@@ -1,18 +1,16 @@
 
-struct SeqLogger{PT<:PostType} <: AbstractLogger
+struct SeqLogger <: AbstractLogger
     server_url::String
     header::Vector{Pair{String,String}}
     min_level::Logging.LogLevel
     event_properties::Ref{String}
-    post_type::PT
     event_batch::Vector{String}
     batch_size::Int
 end
 
 """
     SeqLogger(
-        server_url::AbstractString, 
-        post_type::PostType=SerialPost();
+        server_url::AbstractString;
         min_level::Logging.LogLevel=Logging.Info,
         api_key::AbstractString="",
         batch_size::Int=10,
@@ -23,8 +21,6 @@ Logger to post log events to a `Seq` log server.
 
 ### Inputs
 - `server_url` -- `Seq` server url (e.g. `"http://localhost:5341"`)
-- `post_type` -- (optional, `default=SerialPost()`) defines if the log events are sent to the 
-    `Seq` server in series or in ParallelPost to the execution of the regular program
 - `min_level` -- (optional, `default=Logging.Info`) minimal log level to filter the log events
 - `api_key` --  (optional, `default=""`) API-key string for registered Applications
 - `batch_size` -- (optional, `default=10`) number of log events sent to `Seq` server in single post
@@ -45,17 +41,12 @@ only apply to a single log event.
 Note: This only works, if the [`Logging.current_logger`](@ref) is of type `SeqLogger` or "contains" a `SeqLogger`.
 """
 function SeqLogger(
-    server_url::AbstractString, 
-    post_type::PostType=SerialPost();
+    server_url::AbstractString;
     min_level::Logging.LogLevel=Logging.Info,
     api_key::AbstractString="",
     batch_size::Int=10,
     event_properties...
 )
-    if post_type isa BackgroundPost
-        WorkerUtilities.init(post_type.number_workers)
-    end
-
     url_endpoint = joinurl(server_url, "api/events/raw")
     header = ["Content-Type" => "application/vnd.serilog.clef"]
     if !isempty(api_key)
@@ -67,7 +58,6 @@ function SeqLogger(
         header,
         min_level,
         Ref(event_properties_str),
-        post_type,
         String[],
         batch_size
     )
@@ -193,40 +183,9 @@ end
 
 Send POST request with body `json_str` to `Seq` server.
 """
-function post_request(logger::SeqLogger, json_str::AbstractString)
+function post_log_events(logger::SeqLogger, json_str::AbstractString)
     return HTTP.request("POST", logger.server_url, logger.header, json_str)
 end 
-
-"""
-    post_log_events(logger::SeqLogger{<:PostType}, json_str::AbstractString)
-
-Post the log events contained in `json_str` to the `Seq` server.
-
-The [`PostType`](@ref) determines the behaviour of the function. 
-"""
-function post_log_events end
-
-function post_log_events(logger::SeqLogger{BackgroundPost}, json_str::AbstractString)
-    worker = WorkerUtilities.@spawn begin
-        post_request(logger, json_str)
-    end
-    fetch(worker)
-    return nothing
-end
-
-function post_log_events(logger::SeqLogger{ParallelPost}, json_str::AbstractString)
-    worker = Threads.@spawn begin
-        post_request(logger, json_str)
-    end
-    fetch(worker)
-    return nothing
-end
-
-function post_log_events(logger::SeqLogger{SerialPost}, json_str::AbstractString)
-    post_request(logger, json_str)
-    return nothing
-end
-
 
 """
     event_property!(logger::SeqLogger; kwargs...)
