@@ -12,8 +12,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      allow_failures:
-        - julia: nightly
       matrix:
         version:
           - '1.3'
