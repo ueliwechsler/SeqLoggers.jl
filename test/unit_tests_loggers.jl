@@ -30,7 +30,7 @@ minimalSeqLogger = SeqLogger("http://localhost:8080";)
 @test minimalSeqLogger.min_level == Logging.Info
 minimalSeqLogger.server_url == "http://localhost:5341/api/events/raw"
 @test minimalSeqLogger.event_properties[]  == ""
-@test minimalSeqLogger.header == ["Content-Type" => "application/vnd.serilog.clef"]
+@test minimalSeqLogger.headers == Dict("Content-Type" => "application/vnd.serilog.clef")
 @test minimalSeqLogger.batch_size == 10
 @test minimalSeqLogger.event_batch == String[]
 
@@ -48,8 +48,10 @@ seqLogger = SeqLogger(
 @test seqLogger.min_level == Logging.Debug
 @test seqLogger.server_url == "http://myhost:1010/api/events/raw"
 @test seqLogger.event_properties[]  ==  "\"App\":\"Trialrun\",\"HistoryId\":\"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\"Env\":\"Test\""
-@test seqLogger.header == ["Content-Type" => "application/vnd.serilog.clef"
-                        "X-Seq-api_key" => "Test"]
+@test seqLogger.headers == Dict(
+    "Content-Type" => "application/vnd.serilog.clef",
+    "X-Seq-api_key" => "Test"
+)
 @test seqLogger.batch_size == 3
 @test seqLogger.event_batch == String[]
 
@@ -71,3 +73,18 @@ SeqLoggers.event_property!(combinedLogger; next3="true3")
 @test combinedLogger.loggers[2].event_properties[] ==
     "\"newProperty\":\"DynamicProperty\",\"next\":\"true\",\"next3\":\"true3\""
 end
+
+@testset "Run With logger" begin
+logger = ConsoleLogger(stderr, Logging.Info)
+@test_throws DomainError run_with_logger(logger) do
+    sqrt(-1)
+end
+
+@test_throws DomainError run_with_logger(logger, -1) do x
+    sqrt(x)
+end
+end
+
+
+
+

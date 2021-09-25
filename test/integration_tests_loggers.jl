@@ -51,3 +51,17 @@ Logging.with_logger(logger2) do
         @test Logging.global_logger() == logger1
     end
 end
+
+
+@testset "Run With logger SeqLoggers" begin
+logger = SeqLogger(SERVER_URL; App="Trialrun")
+
+@test_throws DomainError run_with_logger(logger, -1) do x
+    @info "Run stuff"
+    sqrt(x)
+end
+
+@test isempty(logger.event_batch)
+end
+
+

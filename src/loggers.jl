@@ -1,7 +1,7 @@
 
 struct SeqLogger <: AbstractLogger
     server_url::String
-    header::Vector{Pair{String,String}}
+    headers::Dict{String,String}
     min_level::Logging.LogLevel
     event_properties::Ref{String}
     event_batch::Vector{String}
@@ -48,14 +48,14 @@ function SeqLogger(
     event_properties...
 )
     url_endpoint = joinurl(server_url, "api/events/raw")
-    header = ["Content-Type" => "application/vnd.serilog.clef"]
+    headers = Dict("Content-Type" => "application/vnd.serilog.clef")
     if !isempty(api_key)
-        push!(header, "X-Seq-api_key" => api_key)
+        headers["X-Seq-api_key"] = api_key
     end
     event_properties_str = stringify(; event_properties...)
     return SeqLogger(
         url_endpoint,
-        header,
+        headers,
         min_level,
         Ref(event_properties_str),
         String[],
@@ -184,7 +184,7 @@ end
 Send POST request with body `json_str` to `Seq` server.
 """
 function post_log_events(logger::SeqLogger, json_str::AbstractString)
-    return HTTP.request("POST", logger.server_url, logger.header, json_str)
+    return HTTP.request("POST", logger.server_url, logger.headers, json_str)
 end 
 
 """
@@ -211,4 +211,51 @@ function event_property!(logger::SeqLogger; kwargs...)
                                           new_event_properties], ",")
     end
     return nothing
+end
+
+
+"""
+    run_with_logger(f::Function, logger::AbstractLogger, args...)
+
+Helper function that applies advanced event logging to the execution of `f(args...)`.
+
+In addition to normal log events (`@info`, ...), the logger catches exceptions
+to create error log events. Afterwards, the exception will continue propagation
+as if it had not been caught.
+
+### Inputs
+- `f` -- function to execute
+- `args` -- function arguments
+
+### Retunrs
+Result from applying `f(args...)` including thrown exceptions.
+
+### Notes
+The function `run_with_logger` applies a new logger to the function call
+`f(args...)`. All loggers applied on a "higher level" are replaced for the lifespan
+of the function call.
+
+### Example
+```julia
+logger = ConsoleLogger(stderr, Logging.Info)
+run_with_logger(logger, -3) do number
+    @info "Compute square root for negative number: \$number"
+    sqrt(number)
+end
+```
+"""
+function run_with_logger(f::Function, logger::AbstractLogger, args...)
+    with_logger(logger) do
+        # If there is an error in the function call, catch the exception, create
+        # a log event and rethrow the exception.
+        try
+            return f(args...)
+        catch exception
+            backTrace = sprint(showerror, exception, catch_backtrace())
+            @error backTrace
+            # Loggers including a SeqLogger needs to flash the event batch before rethrowing
+            flush_events(logger)
+            rethrow()
+        end
+    end
 end
