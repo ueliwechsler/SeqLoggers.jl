@@ -116,12 +116,26 @@ Create a log event string from the named tuple `message_args`.
 """
 function parse_event_str_from_args(logger::SeqLogger, message_args::NamedTuple)
     line_event_properties = stringify(; _file=message_args.file, _line=message_args.line)
-    kwarg_event_properties = stringify(; message_args.kwargs...)
-    clean_message = replace_invalid_character("$(message_args.message)")
-    atTime = "\"@t\":\"$(now())\""
-    atMsg = "\"@mt\":\"$(clean_message)\""
-    atLevel = "\"@l\":\"$(to_seq_level(message_args.level))\""
-    default_event_properties = [atTime, atMsg, atLevel]
+    is_error_log_event = message_args.level == Logging.Error
+    # Ignore "back_trace" log event if log level is Error (use special @x option)
+    log_event_kwargs = [
+        key => value for (key, value) in message_args.kwargs 
+        if !(is_error_log_event && key == :back_trace)
+    ]
+    kwarg_event_properties = stringify(; log_event_kwargs...)
+    clean_log_msg = replace_invalid_character("$(message_args.message)")
+    at_time = "\"@t\":\"$(now())\""
+    at_msg = "\"@mt\":\"$(clean_log_msg)\""
+    at_level = "\"@l\":\"$(to_seq_level(message_args.level))\""
+    default_event_properties = [at_time, at_msg, at_level]
+    if is_error_log_event
+        println(message_args.kwargs)
+        back_trace = [value for (key, value) in message_args.kwargs if key == :back_trace]
+        clean_exp_msg = isempty(back_trace) ? clean_log_msg : replace_invalid_character(back_trace[begin])
+        at_exception = "\"@x\":\"$(clean_exp_msg)\""
+        println(at_exception)
+        push!(default_event_properties, at_exception)
+    end
     additonal_event_properties = [
         event for event in (line_event_properties,
                             kwarg_event_properties,
@@ -251,8 +265,10 @@ function run_with_logger(f::Function, logger::AbstractLogger, args...)
         try
             return f(args...)
         catch exception
-            backTrace = sprint(showerror, exception, catch_backtrace())
-            @error backTrace
+            back_trace = sprint(showerror, exception, catch_backtrace())
+            exception_message = sprint(showerror, exception)
+            # SeqLogger extract the back_trace `parse_event_str_from_args` 
+            @error exception_message back_trace=back_trace
             # Loggers including a SeqLogger needs to flash the event batch before rethrowing
             flush_events(logger)
             rethrow()

@@ -1,17 +1,17 @@
 {
     "logging": {
         "SeqLogger": {
-            "server_url": "test",
-            "min_level": "INFO"
+            "server_url": "http://subdn215:5341",
+            "min_level": "INFO",
+            "App": "TrialRun"
         },
         "ConsoleLogger":{
             "min_level": "DEBUG"            
         },
         "FileLogger": {
-            "min_level": "WARN",
-            "file_path": "C:\\Temp\\test.txt",
+            "min_level": "DEBUG",
+            "file_path": "C:\\Temp\\test2.txt",
             "append": false
-
         }
     }
 }

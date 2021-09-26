@@ -74,15 +74,19 @@ SeqLoggers.event_property!(combinedLogger; next3="true3")
     "\"newProperty\":\"DynamicProperty\",\"next\":\"true\",\"next3\":\"true3\""
 end
 
-@testset "Run With logger" begin
+@testset "Run With logger: ConsoleLogger" begin
 logger = ConsoleLogger(stderr, Logging.Info)
-@test_throws DomainError run_with_logger(logger) do
-    sqrt(-1)
+run_with_logger(logger) do
+    @debug "No Exception"
+    @info "No Exception"
+    @warn "No Exception"
+    @error "No Exception"
 end
 
 @test_throws DomainError run_with_logger(logger, -1) do x
     sqrt(x)
 end
+
 end
 
 
