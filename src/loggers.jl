@@ -129,11 +129,9 @@ function parse_event_str_from_args(logger::SeqLogger, message_args::NamedTuple)
     at_level = "\"@l\":\"$(to_seq_level(message_args.level))\""
     default_event_properties = [at_time, at_msg, at_level]
     if is_error_log_event
-        println(message_args.kwargs)
         back_trace = [value for (key, value) in message_args.kwargs if key == :back_trace]
         clean_exp_msg = isempty(back_trace) ? clean_log_msg : replace_invalid_character(back_trace[begin])
         at_exception = "\"@x\":\"$(clean_exp_msg)\""
-        println(at_exception)
         push!(default_event_properties, at_exception)
     end
     additonal_event_properties = [
