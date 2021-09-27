@@ -60,7 +60,7 @@ Return a `SeqLogger` or `TransformerLogger` according to `logger_config`.
 - `"server_url"` -- required
 - `"min_level"` -- required (`"DEBUG", "INFO", "WARN", "ERROR"`)
 - `"transformation"` -- optional, default `identity`
-- `"api_key"` -- optional, default `"test"`
+- `"api_key"` -- optional, default `""`
 - `"batch_size"` -- optional, default `10`
 
 All other config parameters are used as global event properties.
@@ -129,8 +129,9 @@ Return a `MinLevelLogger{FileLogger}` or `TransformerLogger` according to `logge
 ### Config Parameters
 - `"file_path"` -- required
 - `"min_level"` -- required (`"DEBUG", "INFO", "WARN", "ERROR"`)
-- `"append"` -- required, append to file or create or overwrite
+- `"append"` -- optional, default `true`, append to file if `true`, otherwise truncate file. (See [`LoggingExtras.FileLogger`](@ref) for more information.)
 - `"transformation"` -- optional, default `identity`
+
 
 ### Example
 ```julia
@@ -138,17 +139,16 @@ logging_config = Dict(
     "min_level" => "ERROR",
     "transformation" => "add_timestamp",
 )
-
 seq_logger = SeqLoggers.load_consolelogger(log_dict)
 ```
 """
 function load_filelogger(logger_config::AbstractDict)
     min_level = logger_config["min_level"] |> get_log_level
     file_path = logger_config["file_path"]
-    append = logger_config["append"]
+    append = get(logger_config, "append", true)
     transformation_str = get(logger_config, "transformation", "identity")
     transformation = transformation_str |> get_transformation_function
-    return MinLevelLogger(FileLogger(file_path, append=append), min_level) |> transformation
+    return MinLevelLogger(FileLogger(file_path; append=append), min_level) |> transformation
 end
 
 # ====================================================================

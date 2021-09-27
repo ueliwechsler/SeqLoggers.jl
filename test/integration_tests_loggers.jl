@@ -1,3 +1,7 @@
+using SeqLoggers
+using Logging
+using Test
+
 # const SERVER_URL = "http://localhost:5341/"
 const SERVER_URL = "http://subdn215:5341/"
 
@@ -53,7 +57,7 @@ Logging.with_logger(logger2) do
 end
 
 
-@testset "Run With logger SeqLoggers" begin
+@testset "run_with_logger SeqLoggers Flush event batch" begin
 logger = SeqLogger(SERVER_URL; App="Trialrun")
 
 @test_throws DomainError run_with_logger(logger, -1) do x
@@ -65,3 +69,31 @@ end
 end
 
 
+@testset "Throw exception in all available Loggers" begin
+
+console_logger = global_logger()
+@test_throws ArgumentError run_with_logger(console_logger) do 
+    throw(ArgumentError("Tester, indeed!"))    
+end
+
+seq_logger = SeqLogger(SERVER_URL; App="TrialRun")
+@test_throws ArgumentError run_with_logger(seq_logger) do 
+    @info "sfd" 
+    @warn "sfd" 
+    @error "Logged error with backtrace" back_trace="This is a backtrace" 
+    @error "Logged error without backtrace"  
+    throw(ArgumentError("Real exception thrown"))
+end
+
+# Run this test after load logger from config was successful
+file_path = joinpath(@__DIR__, "data", "config.json")
+tee_logger = SeqLoggers.load_logger_from_config(file_path)
+@test_throws ArgumentError run_with_logger(tee_logger) do     
+    @info "sfd" 
+    @warn "sfd" 
+    @error "Logged error with backtrace" back_trace="This is a backtrace" 
+    @error "Logged error without backtrace"  
+    throw(ArgumentError("Real exception thrown"))
+end
+
+end
