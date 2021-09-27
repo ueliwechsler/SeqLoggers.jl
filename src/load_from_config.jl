@@ -60,7 +60,7 @@ Return a `SeqLogger` or `TransformerLogger` according to `logger_config`.
 - `"server_url"` -- required
 - `"min_level"` -- required (`"DEBUG", "INFO", "WARN", "ERROR"`)
 - `"transformation"` -- optional, default `identity`
-- `"api_key"` -- optional, default `"test"`
+- `"api_key"` -- optional, default `""`
 - `"batch_size"` -- optional, default `10`
 
 All other config parameters are used as global event properties.
