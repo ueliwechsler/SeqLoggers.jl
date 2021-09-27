@@ -74,6 +74,39 @@ SeqLoggers.event_property!(combinedLogger; next3="true3")
     "\"newProperty\":\"DynamicProperty\",\"next\":\"true\",\"next3\":\"true3\""
 end
 
+@testset "parse_event_str_from_args" begin
+
+logger = SeqLogger("http://localhost:5341";)
+message_args = (
+    level=Logging.Info, 
+    message="Log Message", 
+    _module=Main, 
+    group=:file_name,
+    file="file_path",
+    line=100,
+    kwargs=Dict(:a => 1, :b => 2)
+)
+parsed_msg_str = SeqLoggers.parse_event_str_from_args(logger, message_args)
+parsed_msg_str_without_dt = parsed_msg_str[1:7] * parsed_msg_str[31:end]
+@test parsed_msg_str_without_dt == "{\"@t\":\"\",\"@mt\":\"Log Message\",\"@l\":\"Info\",\"_file\":\"file_path\",\"_line\":\"100\",\"a\":\"1\",\"b\":\"2\"}"
+
+message_args = (
+    level=Logging.Error, 
+    message="Log Message", 
+    _module=Main, 
+    group=:file_name,
+    file="file_path",
+    line=100,
+    kwargs=Dict(:back_trace => "this is a backtrace", :b => 2)
+)
+parsed_msg_str = SeqLoggers.parse_event_str_from_args(logger, message_args)
+parsed_msg_str_without_dt = parsed_msg_str[1:7] * parsed_msg_str[31:end]
+@test parsed_msg_str_without_dt == "{\"@t\":\"\",\"@mt\":\"Log Message\",\"@l\":\"Error\",\"@x\":\"this is a backtrace\",\"_file\":\"file_path\",\"_line\":\"100\",\"b\":\"2\"}"
+
+end
+
+
+
 @testset "Run With logger: ConsoleLogger" begin
 logger = ConsoleLogger(stderr, Logging.Info)
 run_with_logger(logger) do
