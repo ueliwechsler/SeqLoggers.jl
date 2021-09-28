@@ -1,6 +1,6 @@
 
 # SeqLoggers.jl
-[![Stable](https://img.shields.io/badge/docs-dev-blue.svg)](https://ueliwechsler.github.io/SeqLoggers.jl/stable)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ueliwechsler.github.io/SeqLoggers.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ueliwechsler.github.io/SeqLoggers.jl/dev)
 [![Build Status](https://github.com/ueliwechsler/SeqLoggers.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/ueliwechsler/SeqLoggers.jl/actions/workflows/ci.yml/)
 [![Coverage](https://codecov.io/gh/ueliwechsler/SeqLoggers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ueliwechsler/SeqLoggers.jl)
