@@ -1,6 +1,7 @@
 using SeqLoggers
 using Test
 using Logging
+using LoggingExtras
 
 @testset "Load SeqLogger" begin
 # Only Required Values
@@ -108,7 +109,6 @@ tran_logger = SeqLoggers.load_filelogger(logging_config)
 @test tran_logger.logger.min_level == Logging.Info
 
 end
-    
 
 @testset "Load logger from config" begin
 

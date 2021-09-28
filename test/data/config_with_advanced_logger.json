@@ -1,0 +1,23 @@
+{
+    "logging": {
+        "SeqLogger": {
+            "server_url": "http://subdn215:5341",
+            "min_level": "INFO",
+            "App": "TrialRun"
+        },
+        "ConsoleLogger":{
+            "min_level": "DEBUG"            
+        },
+        "FileLogger": {
+            "min_level": "DEBUG",
+            "file_path": "C:\\Temp\\test2.txt",
+            "append": false
+        },
+        "AdvancedFileLogger": {
+            "min_level": "ERROR",
+            "dir_path": "C:/Temp",
+            "file_name_pattern": "\\t\\e\\s\\t_YYYY-mm-dd.\\l\\o\\g",
+            "transformation": "identity"
+        }
+    }
+}
