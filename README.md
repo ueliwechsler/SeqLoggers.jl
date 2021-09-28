@@ -55,12 +55,14 @@ Within the scope of the `do`-block, the active logger can be obtained by calling
 A `SeqLogger` is constructed by calling the constructor with the same name.
 ```julia
 using SeqLoggers
-seq_logger = SeqLogger("http://localhost:5341"; # `Seq` server url
-                      min_level=Logging.Info, # define minimal level for log events
-                      api_key="", # api-key for registered Apps
-                      batch_size=1,
-                      App="Trialrun", # additional log event properties
-                      Env="UAT")
+seq_logger = SeqLogger(
+    "http://localhost:5341"; # `Seq` server url
+    min_level=Logging.Info, # define minimal level for log events
+    api_key="", # api-key for registered Apps
+    batch_size=1,
+    App="Trialrun", # additional log event properties
+    Env="UAT"
+)
 ```
 
 The resulting logger `seq_logger` posts each log event separately to the `Seq` server with url `"http://localhost:5341"`.
