@@ -37,6 +37,29 @@ end
 
 end
 
+@testset "Load AdvancedFileLogger" begin 
+
+logging_config = Dict(
+    "min_level" => "INFO",
+    "dir_path" => "C:\\temp",
+    "file_name_pattern" => "\\t\\e\\s\\t_YYYY-mm-dd.\\l\\o\\g",
+)
+
+logger = SeqLoggers.load_advanced_filelogger(logging_config)
+@test logger.min_level == Logging.Info
+
+logging_config = Dict(
+    "min_level" => "INFO",
+    "dir_path" => "C:\\temp",
+    "file_name_pattern" => "\\t\\e\\s\\t_YYYY-mm-dd.\\l\\o\\g",
+    "transformation" => "add_timestamp",
+)
+
+tran_logger = SeqLoggers.load_advanced_filelogger(logging_config)
+@test tran_logger.logger.min_level == Logging.Info
+    
+end
+
 
 @testset "Load logger from config" begin
 
