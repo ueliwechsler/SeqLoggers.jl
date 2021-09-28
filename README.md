@@ -1,7 +1,7 @@
 
 # SeqLoggers.jl
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ueliwechsler.github.io/SeqLoggers.jl/dev)
-[![Build Status](https://travis-ci.com/ueliwechsler/SeqLoggers.jl.svg?branch=master)](https://travis-ci.com/ueliwechsler/SeqLoggers.jl)
+[![Build Status](https://github.com/ueliwechsler/SeqLoggers.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/ueliwechsler/SeqLoggers.jl/actions/workflows/ci.yml/)
 [![Coverage](https://codecov.io/gh/ueliwechsler/SeqLoggers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ueliwechsler/SeqLoggers.jl)
 
 `SeqLoggers.jl` is a tool for sending log events to a [`Seq` log server](https://datalust.co/seq) using the `Julia` Programming language.
