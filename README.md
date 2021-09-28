@@ -82,7 +82,7 @@ Note, that all elements surrounded by curly brackets, e.g. `{user}`, will be rep
 
 ### Interaction with `LoggingExtras.jl`
 `SeqLogger`s can also be combined with the functionality of [`LoggingExtras.jl`](https://github.com/oxinabox/LoggingExtras.jl) .
-```
+```julia
 using LoggingExtras
 combinedLogger = TeeLogger(Logging.current_logger(), seq_logger)
 ```
