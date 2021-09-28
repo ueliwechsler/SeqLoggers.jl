@@ -136,10 +136,12 @@ Return a `MinLevelLogger{FileLogger}` or `TransformerLogger` according to `logge
 ### Example
 ```julia
 logging_config = Dict(
+    "file_path" => "C:/Temp/test.log",
     "min_level" => "ERROR",
+    "append" => true,
     "transformation" => "add_timestamp",
 )
-seq_logger = SeqLoggers.load_consolelogger(log_dict)
+seq_logger = SeqLoggers.load_filelogger(log_dict)
 ```
 """
 function load_filelogger(logger_config::AbstractDict)
@@ -149,6 +151,44 @@ function load_filelogger(logger_config::AbstractDict)
     transformation_str = get(logger_config, "transformation", "identity")
     transformation = transformation_str |> get_transformation_function
     return MinLevelLogger(FileLogger(file_path; append=append), min_level) |> transformation
+end
+
+"""
+    load_advanced_filelogger(logger_config::AbstractDict)::AbstractLogger
+
+Return a `DatetimeRotatingFileLogger` or `TransformerLogger` according to `logger_config`.
+
+### Config Parameters
+- `"dir_path"` -- required
+- `"min_level"` -- required (`"DEBUG", "INFO", "WARN", "ERROR"`)
+- `"file_name_pattern"` -- required e.g. `"\\a\\c\\c\\e\\s\\s-YYYY-mm-dd-HH-MM.\\l\\o\\g"`
+- `"transformation"` -- optional, default `identity`
+
+### Example
+```julia
+logging_config = Dict(
+    "dir_path" => "C:/Temp",
+    "min_level" => "ERROR",
+    "file_name_pattern" => "\\a\\c\\c\\e\\s\\s-YYYY-mm-dd-HH-MM.\\l\\o\\g",
+    "transformation" => "add_timestamp",
+)
+seq_logger = SeqLoggers.load_advanced_filelogger(log_dict)
+```
+"""
+function load_advanced_filelogger(logger_config::AbstractDict)
+    min_level = logger_config["min_level"] |> get_log_level
+    dir_path = logger_config["dir_path"]
+    file_name_pattern = logger_config["file_name_pattern"]
+
+    transformation_str = get(logger_config, "transformation", "identity")
+    transformation = transformation_str |> get_transformation_function
+    
+    return AdvancedFileLogger(
+        dir_path, 
+        file_name_pattern; 
+        log_format_function=print_standard_format, 
+        min_level=min_level
+    ) |> transformation
 end
 
 # ====================================================================
@@ -200,6 +240,7 @@ const LOGGER_TYPE_MAPPING = Dict(
     "SeqLogger" => load_seqlogger,
     "ConsoleLogger" => load_consolelogger,
     "FileLogger" => load_filelogger,
+    "AdvancedFileLogger" => load_advanced_filelogger,
 )
 
 # ====================================================================

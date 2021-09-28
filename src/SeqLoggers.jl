@@ -12,6 +12,9 @@ include("loggers.jl")
 export SeqLogger
 export run_with_logger
 
+include("advanced_file_logger.jl")
+export AdvancedFileLogger
+
 include("logging_extras.jl")
 
 include("load_from_config.jl")
