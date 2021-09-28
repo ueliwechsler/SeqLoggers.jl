@@ -2,7 +2,7 @@ using Logging
 using SeqLoggers
 using Test
 
-@testset "Advanced Logger Constructor" begin 
+@testset "AdvancedLogger" begin 
 
 file_name_pattern = raw"\a\c\c\e\s\s-YYYY-mm-dd-HH-MM.\l\o\g"
 dir_path = mktempdir()
