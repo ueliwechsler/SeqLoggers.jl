@@ -149,11 +149,6 @@ config = Dict(
             "min_level" => "INFO",
             "file_path" => raw"C:\Temp\test.txt",
             "append" => true,
-        ),
-        "AdvancedFileLogger" => Dict(
-            "min_level" => "INFO",
-            "dir_path" => "C:\\temp",
-            "file_name_pattern" => "\\t\\e\\s\\t_YYYY-mm-dd.\\l\\o\\g",
         )
     ]
 )
@@ -161,12 +156,10 @@ config = Dict(
 @test SeqLoggers.get_logger(config["logging"][1]...) isa SeqLogger
 @test SeqLoggers.get_logger(config["logging"][2]...) isa ConsoleLogger
 @test SeqLoggers.get_logger(config["logging"][3]...) isa MinLevelLogger # of FileLogger
-@test SeqLoggers.get_logger(config["logging"][4]...) isa MinLevelLogger # of FileLogger
 tee_logger = SeqLoggers.load_logger_from_config(config)
 @test tee_logger.loggers[1] isa SeqLogger
 @test tee_logger.loggers[2] isa ConsoleLogger
 @test tee_logger.loggers[3] isa MinLevelLogger # of FileLogger
-@test tee_logger.loggers[4] isa MinLevelLogger # of FileLogger
 
 # Broken test
 @test_throws ArgumentError SeqLoggers.get_logger("FalseLogger", Dict())
@@ -198,13 +191,12 @@ tee_logger = SeqLoggers.load_logger_from_config(config)
 end
 
 
-# @testset "Load Logger from config" begin 
+@testset "Load Logger from config" begin 
 
 file_path = joinpath(@__DIR__, "data", "config.json")
 tee_logger = SeqLoggers.load_logger_from_config(file_path)
 @test tee_logger.loggers[1] isa SeqLogger
 @test tee_logger.loggers[2] isa ConsoleLogger
 @test tee_logger.loggers[3] isa MinLevelLogger # of FileLogger
-@test tee_logger.loggers[4] isa MinLevelLogger # of FileLogger
 
-# end
+end

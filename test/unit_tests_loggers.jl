@@ -87,8 +87,11 @@ message_args = (
     kwargs=Dict(:a => 1, :b => 2)
 )
 parsed_msg_str = SeqLoggers.parse_event_str_from_args(logger, message_args)
-parsed_msg_str_without_dt = chop(parsed_msg_str, head=32, tail=0)
-@test parsed_msg_str_without_dt == "\"@mt\":\"Log Message\",\"@l\":\"Info\",\"_file\":\"file_path\",\"_line\":\"100\",\"a\":\"1\",\"b\":\"2\"}"
+@test occursin("\"@mt\":\"Log Message\"", parsed_msg_str)
+@test occursin("\"@l\":\"Info\"", parsed_msg_str)
+@test occursin("\"_file\":\"file_path\"", parsed_msg_str)
+@test occursin("\"_line\":\"100\"", parsed_msg_str)
+@test occursin("\"a\":\"1\",\"b\":\"2\"", parsed_msg_str)
 
 message_args = (
     level=Logging.Error, 
@@ -100,8 +103,12 @@ message_args = (
     kwargs=Dict(:back_trace => "this is a backtrace", :b => 2)
 )
 parsed_msg_str = SeqLoggers.parse_event_str_from_args(logger, message_args)
-parsed_msg_str_without_dt = chop(parsed_msg_str, head=32, tail=0)
-@test parsed_msg_str_without_dt == "\"@mt\":\"Log Message\",\"@l\":\"Error\",\"@x\":\"this is a backtrace\",\"_file\":\"file_path\",\"_line\":\"100\",\"b\":\"2\"}"
+@test occursin("\"@mt\":\"Log Message\"", parsed_msg_str)
+@test occursin("\"@l\":\"Error\"", parsed_msg_str)
+@test occursin("\"@x\":\"this is a backtrace\"", parsed_msg_str)
+@test occursin("\"_file\":\"file_path\"", parsed_msg_str)
+@test occursin("\"_line\":\"100\"", parsed_msg_str)
+@test occursin("\"b\":\"2\"", parsed_msg_str)
 
 end
 

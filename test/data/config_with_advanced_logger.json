@@ -12,6 +12,12 @@
             "min_level": "DEBUG",
             "file_path": "C:\\Temp\\test2.txt",
             "append": false
+        },
+        "AdvancedFileLogger": {
+            "min_level": "ERROR",
+            "dir_path": "C:/Temp",
+            "file_name_pattern": "\\t\\e\\s\\t_YYYY-mm-dd.\\l\\o\\g",
+            "transformation": "identity"
         }
     }
 }
