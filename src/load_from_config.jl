@@ -42,11 +42,49 @@ config = Dict(
 `TeeLogger` as defined in `config`
 """
 function load_logger_from_config(config::AbstractDict)
-    loggers = [
-        get_logger(string(logger_type), logger_specs) for (logger_type, logger_specs) in config["logging"]
-    ]
+    loggers = Vector{AbstractLogger}(undef, length(config["logging"]))
+    for (idx, (logger_type, logger_specs)) in enumerate(config["logging"])
+        logger = get_logger(string(logger_type), logger_specs)
+        logger = add_active_filter(logger, logger_specs)
+        loggers[idx] = logger
+    end
     return TeeLogger(loggers...)
 end
+
+"""
+    add_active_filter(logger::AbstractLogger, logger_config)
+
+Add active filtering to an existing logger.
+
+An active filter only logs the logging messages that satify a filter function.
+
+To add an active filter, the following keys-value pairs can be added to any `logger_config`:
+- `"start_with_filter" => "WORD_TO_FILTER_BY"`
+- `"occurs_in_filter" => "WORD_TO_FILTER_BY"`
+
+### Returns
+`ActiveFilteredLogger` that contains the `logger` and a filter function
+according to the `logger_config`.
+"""
+function add_active_filter(logger::AbstractLogger, logger_config)
+    if haskey(logger_config, "start_with_filter") 
+        return ActiveFilteredLogger(
+            log_args -> 
+            startswith(log_args.message, logger_config["start_with_filter"]
+            ), 
+            logger
+        )
+    elseif haskey(logger_config, "occurs_in_filter") 
+        return ActiveFilteredLogger(
+            log_args -> 
+            occursin(logger_config["occurs_in_filter"], log_args.message), 
+            logger
+        )
+    else
+        return logger
+    end
+end
+    
 
 # ====================================================================
 # Load Single Logger

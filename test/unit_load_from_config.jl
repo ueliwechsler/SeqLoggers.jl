@@ -176,3 +176,36 @@ tee_logger = SeqLoggers.load_logger_from_config(file_path)
 @test tee_logger.loggers[3] isa MinLevelLogger # of FileLogger
 
 end
+
+
+@testset "Load logger from config with filters" begin
+
+config = Dict(
+    "logging" => [
+        "ConsoleLogger" => Dict(
+            "min_level" => "DEBUG",
+            "occurs_in_filter" => "SIIIII"
+        ),
+        "ConsoleLogger" => Dict(
+            "min_level" => "INFO",
+            "start_with_filter" => "FILTER_MSG"
+        )
+    ]
+)
+
+tee_logger = SeqLoggers.load_logger_from_config(config)
+# @test tee_logger.loggers[1] isa SeqLogger
+@test tee_logger.loggers[1] isa ActiveFilteredLogger
+# @test tee_logger.loggers[2] isa MinLevelLogger # of FileLogger
+
+run_with_logger(tee_logger) do
+    @debug "No SIIIII Exception"
+    @debug "FILTER_MSG: No Exception"
+    @info "FILTER_MSG: No Exception"
+    @warn "FILTER_MSG: No Exception"
+    @error "FILTER_MSG: No Exception"
+    @info "a FILTER_MSG: No Exception"
+end
+
+
+end
