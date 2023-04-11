@@ -20,8 +20,8 @@ Logging.global_logger(unbatched_logger)
 
 # write TeeLogger
 tee_logger = SeqLoggers.LoggingExtras.TeeLogger(
-        SeqLogger(SERVER_URL; App="Trialrun"),
-        Logging.ConsoleLogger(stderr)
+    SeqLogger(SERVER_URL; App="Trialrun"),
+    Logging.ConsoleLogger(stderr)
 )
 
 Logging.with_logger(tee_logger) do
@@ -58,42 +58,42 @@ end
 
 
 @testset "run_with_logger SeqLoggers Flush event batch" begin
-logger = SeqLogger(SERVER_URL; App="Trialrun")
+    logger = SeqLogger(SERVER_URL; App="Trialrun")
 
-@test_throws DomainError run_with_logger(logger, -1) do x
-    @info "Run stuff"
-    sqrt(x)
-end
+    @test_throws DomainError run_with_logger(logger, -1) do x
+        @info "Run stuff"
+        sqrt(x)
+    end
 
-@test isempty(logger.event_batch)
+    @test isempty(logger.event_batch)
 end
 
 
 @testset "Throw exception in all available Loggers" begin
 
-console_logger = global_logger()
-@test_throws ArgumentError run_with_logger(console_logger) do 
-    throw(ArgumentError("Tester, indeed!"))    
-end
+    console_logger = global_logger()
+    @test_throws ArgumentError run_with_logger(console_logger) do
+        throw(ArgumentError("Tester, indeed!"))
+    end
 
-seq_logger = SeqLogger(SERVER_URL; App="TrialRun")
-@test_throws ArgumentError run_with_logger(seq_logger) do 
-    @info "sfd" 
-    @warn "sfd" 
-    @error "Logged error with backtrace" back_trace="This is a backtrace" 
-    @error "Logged error without backtrace"  
-    throw(ArgumentError("Real exception thrown"))
-end
+    seq_logger = SeqLogger(SERVER_URL; App="TrialRun")
+    @test_throws ArgumentError run_with_logger(seq_logger) do
+        @info "sfd"
+        @warn "sfd"
+        @error "Logged error with backtrace" back_trace = "This is a backtrace"
+        @error "Logged error without backtrace"
+        throw(ArgumentError("Real exception thrown"))
+    end
 
-# Run this test after load logger from config was successful
-file_path = joinpath(@__DIR__, "data", "config.json")
-tee_logger = SeqLoggers.load_logger_from_config(file_path)
-@test_throws ArgumentError run_with_logger(tee_logger) do     
-    @info "sfd" 
-    @warn "sfd" 
-    @error "Logged error with backtrace" back_trace="This is a backtrace" 
-    @error "Logged error without backtrace"  
-    throw(ArgumentError("Real exception thrown"))
-end
+    # Run this test after load logger from config was successful
+    file_path = joinpath(@__DIR__, "data", "config.json")
+    tee_logger = SeqLoggers.load_logger_from_config(file_path)
+    @test_throws ArgumentError run_with_logger(tee_logger) do
+        @info "sfd"
+        @warn "sfd"
+        @error "Logged error with backtrace" back_trace = "This is a backtrace"
+        @error "Logged error without backtrace"
+        throw(ArgumentError("Real exception thrown"))
+    end
 
 end

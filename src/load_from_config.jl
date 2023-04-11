@@ -43,7 +43,7 @@ config = Dict(
 """
 function load_logger_from_config(config::AbstractDict)
     loggers = [
-        get_logger(string(logger_type), logger_specs) for (logger_type, logger_specs) in config["logging"]
+        get_logger(logger_specs) for logger_specs in config["logging"]
     ]
     return TeeLogger(loggers...)
 end
@@ -68,6 +68,7 @@ All other config parameters are used as global event properties.
 ### Example
 ```julia
 log_dict = Dict(
+    "logger_type": "SeqLogger", 
     "server_url" => "http://subdn215:5341/",
     "min_level" => "INFO",
     "batch_size" => 12,
@@ -107,6 +108,7 @@ Return a `ConsoleLogger` or `TransformerLogger` according to `logger_config`.
 ### Example
 ```julia
 logging_config = Dict(
+    "logger_type": "ConsoleLogger", 
     "min_level" => "ERROR",
     "transformation" => "add_timestamp",
 )
@@ -136,6 +138,7 @@ Return a `MinLevelLogger{FileLogger}` or `TransformerLogger` according to `logge
 ### Example
 ```julia
 logging_config = Dict(
+    "logger_type": "FileLogger", 
     "file_path" => "C:/Temp/test.log",
     "min_level" => "ERROR",
     "append" => true,
@@ -167,6 +170,7 @@ Return a `DatetimeRotatingFileLogger` or `TransformerLogger` according to `logge
 ### Example
 ```julia
 logging_config = Dict(
+    "logger_type": "AdvancedFileLogger", 
     "dir_path" => "C:/Temp",
     "min_level" => "ERROR",
     "file_name_pattern" => "\\a\\c\\c\\e\\s\\s-YYYY-mm-dd-HH-MM.\\l\\o\\g",
@@ -182,11 +186,11 @@ function load_advanced_filelogger(logger_config::AbstractDict)
 
     transformation_str = get(logger_config, "transformation", "identity")
     transformation = transformation_str |> get_transformation_function
-    
+
     return AdvancedFileLogger(
-        dir_path, 
-        file_name_pattern; 
-        log_format_function=print_standard_format, 
+        dir_path,
+        file_name_pattern;
+        log_format_function=print_standard_format,
         min_level=min_level
     ) |> transformation
 end
@@ -195,7 +199,7 @@ end
 # Logger Type Mapping and Register
 # ====================================================================
 """
-    get_logger(logger_type::AbstractString, logger_config::AbstractDict)::AbstractLogger
+    get_logger(logger_config::AbstractDict)::AbstractLogger
 
 Create logger struct from logger type name and `Dict` with required parameters.
 
@@ -206,12 +210,16 @@ By default, the following logger types are supported:
 
 Use [`register_logger!`](@ref) to add custom `AbstractLogger`s.
 """
-function get_logger(logger_type::AbstractString, logger_config::AbstractDict)
-    logger_constructor = get(LOGGER_TYPE_MAPPING, logger_type, nothing)
+function get_logger(logger_config::AbstractDict)
+    logger_type = get(logger_config, "logger_type", nothing)
+    if isnothing(logger_type)
+        throw(ArgumentError("Logger config doesn't have a `\"logger_type\"` field."))
+    end
+    logger_constructor = get(LOGGER_TYPE_MAPPING, logger_config["logger_type"], nothing)
     if isnothing(logger_constructor)
         throw(
             ArgumentError(
-                "There is no logger corresponding to the key `$logger_type`. " * 
+                "There is no logger corresponding to the key `$logger_type`. " *
                 "Available options are $(collect(keys(LOGGER_TYPE_MAPPING))). " *
                 "Use `register_logger!` to add new logger types."
             )
@@ -282,9 +290,10 @@ add_timestamp(logger::AbstractLogger)
 
 Logger transformation function that prepends a timestamp to a logging message.
 """
-add_timestamp(logger) = TransformerLogger(logger) do log
-    merge(log, (; message="$(Dates.format(now(), STANDARD_DATETIME_FORMAT)): $(log.message)"))
-end
+add_timestamp(logger) =
+    TransformerLogger(logger) do log
+        merge(log, (; message="$(Dates.format(now(), STANDARD_DATETIME_FORMAT)): $(log.message)"))
+    end
 
 const LOGGER_TRANSFORMATION_MAPPING = Dict(
     "identity" => identity,
@@ -305,7 +314,7 @@ function get_log_level(key::String)
     if isnothing(key)
         throw(
             ArgumentError(
-                "There is no log level corresponding to the key $key." * 
+                "There is no log level corresponding to the key $key." *
                 "Available options are $(collect(keys(LOG_LEVEL_MAPPING)))"
             )
         )

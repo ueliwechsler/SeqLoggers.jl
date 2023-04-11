@@ -1,23 +1,27 @@
 {
-    "logging": {
-        "SeqLogger": {
+    "logging": [
+        {
+            "logger_type": "SeqLogger",
             "server_url": "http://subdn215:5341",
             "min_level": "INFO",
             "App": "TrialRun"
         },
-        "ConsoleLogger":{
-            "min_level": "DEBUG"            
+        {
+            "logger_type": "ConsoleLogger",
+            "min_level": "DEBUG"
         },
-        "FileLogger": {
+        {
+            "logger_type": "FileLogger",
             "min_level": "DEBUG",
             "file_path": "C:\\Temp\\test2.txt",
             "append": false
         },
-        "AdvancedFileLogger": {
+        {
+            "logger_type": "AdvancedFileLogger",
             "min_level": "ERROR",
             "dir_path": "C:/Temp",
             "file_name_pattern": "\\t\\e\\s\\t_YYYY-mm-dd.\\l\\o\\g",
             "transformation": "identity"
         }
-    }
+    ]
 }

@@ -96,21 +96,24 @@ The following example shows how to use [`load_logger_from_config`](@ref) to load
 Given the following configuration file
 ```json
 {
-    "logging": {
-        "SeqLogger": {
+    "logging": [
+        {
+            "logger_type": "SeqLogger",
             "server_url": "test",
             "min_level": "INFO"
         },
-        "ConsoleLogger":{
+        {
+            "logger_type": "ConsoleLogger",
             "min_level": "DEBUG"            
         },
-        "FileLogger": {
+        {
+            "logger_type": "FileLogger",
             "min_level": "WARN",
             "file_path": "C:\\Temp\\test.txt",
             "append": false
 
         }
-    }
+    ]
 }
 ```
 a logger that logs to a `Seq` server, to the `REPL` and a file at the same is created using
